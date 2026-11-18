@@ -8,137 +8,137 @@ after gradlew assembleDebug passes on the Dell; emulator spot checks at
 
 ## UI (1-50)
 
-- ⏳ **#1** HP bar pulses red when HP < 25%
-- ⏳ **#2** XP bar shows numeric progress (cur/next)
-- ⏳ **#3** Combo meter scales up on milestone hits
-- ⏳ **#4** Damage vignette flash on player hurt
-- ⏳ **#5** Low-HP heartbeat edge glow
-- ⏳ **#6** Wave banner shows enemy count remaining
-- ⏳ **#7** Boss HP bar at top of screen
-- ⏳ **#8** Kill counter animates on increment
-- ⏳ **#9** Gem counter animates on pickup
-- ⏳ **#10** Score popups at kill position use combo color
-- ⏳ **#11** Pause button grows touch target to 56dp
-- ⏳ **#12** DASH button shows radial cooldown sweep
-- ⏳ **#13** Joystick base ring brightens while active
-- ⏳ **#14** Floating text outlines for readability
-- ⏳ **#15** HUD fades to 40% during boss intro
-- ⏳ **#16** Level-up cards show current stack counts
-- ⏳ **#17** Upgrade cards show rarity borders
-- ⏳ **#18** Shop prices turn red when unaffordable
-- ⏳ **#19** Settings sliders show % value labels
-- ⏳ **#20** Stats screen adds per-hero best wave
-- ⏳ **#21** How-to adds dash + combo pages
-- ⏳ **#22** Game over shows gems earned this run
-- ⏳ **#23** Victory screen shows clear time
-- ⏳ **#24** New 'damage numbers' toggle in settings
-- ⏳ **#25** Crit hits show larger gold numbers
-- ⏳ **#26** Elite kills show ELITE DOWN banner
-- ⏳ **#27** Wave clear shows bonus summary line
-- ⏳ **#28** Battery-saver HUD note in settings
-- ⏳ **#29** Minimap arrow pointing to boss
-- ⏳ **#30** Off-screen enemy direction arrows
-- ⏳ **#31** Pickup magnet radius ring (fades in on move)
-- ⏳ **#32** Heart drops get green cross icon overlay
-- ⏳ **#33** XP gems brighten as magnet engages
-- ⏳ **#34** Player level badge on hero
-- ⏳ **#35** Run timer in HUD (toggleable)
-- ⏳ **#36** Best combo shown live under combo meter
-- ⏳ **#37** Wave progress pips (enemies left)
-- ⏳ **#38** Dash charges pips (when multi-charge owned)
-- ⏳ **#39** Slow-mo 'last stand' tint at <10% HP
-- ⏳ **#40** Menu buttons get icon + label layout
-- ⏳ **#41** Toast line for meta-shop purchases
-- ⏳ **#42** Confirm dialog for shop purchases
-- ⏳ **#43** Records screen: total playtime
-- ⏳ **#44** Records screen: elites slain count
-- ⏳ **#45** Records screen: hearts collected count
-- ⏳ **#46** Accessibility: larger HUD text option
-- ⏳ **#47** Colorblind-safe elite ring (shape + star)
-- ⏳ **#48** High-contrast mode toggle (brighter UI)
-- ⏳ **#49** Content descriptions on menu buttons
-- ⏳ **#50** Version label on menu footer
+- ✅ **#1** HP bar pulses red when HP < 25%
+- ✅ **#2** XP bar shows numeric progress (cur/next)
+- ✅ **#3** Combo meter scales up on milestone hits
+- ✅ **#4** Damage vignette flash on player hurt
+- ✅ **#5** Low-HP heartbeat edge glow
+- ✅ **#6** Wave banner shows enemy count remaining
+- ✅ **#7** Boss HP bar at top of screen (boss bar + numeric HP)
+- ✅ **#8** Kill counter animates on increment
+- ✅ **#9** Gem counter animates on pickup
+- ✅ **#10** Score popups at kill position use combo color
+- ✅ **#11** Pause button grows touch target to 56dp
+- ✅ **#12** DASH button shows radial cooldown sweep
+- ✅ **#13** Joystick base ring brightens while active
+- ✅ **#14** Floating text outlines for readability
+- ✅ **#15** HUD fades to 40% during boss intro
+- ✅ **#16** Level-up cards show current stack counts
+- ✅ **#17** Upgrade cards show rarity borders
+- ✅ **#18** Shop prices turn red when unaffordable
+- ✅ **#19** Settings sliders show % value labels
+- ✅ **#20** Stats screen adds per-hero best wave
+- ✅ **#21** How-to adds dash + combo pages
+- ✅ **#22** Game over shows gems earned this run (pre-existing in v1.0, verified)
+- ✅ **#23** Victory screen shows clear time (pre-existing in v1.0, verified)
+- ✅ **#24** New 'damage numbers' toggle in settings
+- ✅ **#25** Crit hits show larger gold numbers
+- ✅ **#26** Elite kills show ELITE DOWN banner
+- ✅ **#27** Wave clear shows bonus summary line
+- ✅ **#28** Battery-saver HUD note in settings
+- ✅ **#29** Minimap arrow pointing to boss
+- ✅ **#30** Off-screen enemy direction arrows
+- ✅ **#31** Pickup magnet radius ring (fades in on move)
+- ✅ **#32** Heart drops get green cross icon overlay
+- ✅ **#33** XP gems brighten as magnet engages
+- ✅ **#34** Player level badge on hero
+- ✅ **#35** Run timer in HUD (toggleable)
+- ✅ **#36** Best combo shown live under combo meter
+- ✅ **#37** Wave progress pips (enemies left)
+- ✅ **#38** Dash charges pips (when multi-charge owned)
+- ✅ **#39** Slow-mo 'last stand' tint at <10% HP
+- ✅ **#40** Menu buttons get icon + label layout
+- ✅ **#41** Toast line for meta-shop purchases
+- ✅ **#42** Confirm dialog for shop purchases
+- ✅ **#43** Records screen: total playtime
+- ✅ **#44** Records screen: elites slain count
+- ✅ **#45** Records screen: hearts collected count
+- ✅ **#46** Accessibility: larger HUD text option
+- ✅ **#47** Colorblind-safe elite ring (shape + star)
+- ✅ **#48** High-contrast mode toggle (brighter UI)
+- ✅ **#49** Content descriptions on menu buttons
+- ✅ **#50** Version label on menu footer
 
 ## Graphics (51-100)
 
-- ⏳ **#51** Starfield gains parallax layer 2 (slow far stars)
-- ⏳ **#52** Nebula gradient blobs in arena background
-- ⏳ **#53** Arena grid pulses with music beat timer
-- ⏳ **#54** Player hero gets rotating facet shine
-- ⏳ **#55** Enemy chasers get motion stretch (squash)
-- ⏳ **#56** Darts leave faint speed lines
-- ⏳ **#57** Brutes get cracked-armor detail at <50% HP
-- ⏳ **#58** Splitter children wobble-scale on spawn
-- ⏳ **#59** Boss gets layered crown spikes
-- ⏳ **#60** XP gems get inner sparkle cross
-- ⏳ **#61** Hearts render as faceted gem-hearts
-- ⏳ **#62** Projectiles get glow halo (radial)
-- ⏳ **#63** Orbit blades get arc swoosh trail
-- ⏳ **#64** Scatter pellets tint per pellet index
-- ⏳ **#65** Pulse lance beam gets core + glow layers
-- ⏳ **#66** Frost-chilled enemies get ice crystal overlay
-- ⏳ **#67** Ember tint hook for burning enemies
-- ⏳ **#68** Elite gold ring gets rotating sparkles
-- ⏳ **#69** Player shield ring when i-frames active
-- ⏳ **#70** Dash path gets ribbon fade
-- ⏳ **#71** Wave portal rings at spawn points
-- ⏳ **#72** Arena edge wall gets neon trim
-- ⏳ **#73** Vignette overlay for depth
-- ⏳ **#74** Ground scorch decals after explosions
-- ⏳ **#75** Gem magnet stream lines
-- ⏳ **#76** Low-HP desaturation of background
-- ⏳ **#77** Victory confetti gems use hero colors
-- ⏳ **#78** Menu hero gem gets layered glow rings
-- ⏳ **#79** Title shimmer sweep passes periodically
-- ⏳ **#80** Buttons get gradient fill + top highlight
-- ⏳ **#81** Cards get soft shadow depth
-- ⏳ **#82** Boss arena tint shifts red at boss waves
-- ⏳ **#83** Frost nova ring renders as ice shards
-- ⏳ **#84** Chain lightning arcs (for Tesla Coil upgrade)
-- ⏳ **#85** Poison clouds render as drifting blobs
-- ⏳ **#86** Meteor shadows telegraph before impact
-- ⏳ **#87** Crit projectiles get star sparkle
-- ⏳ **#88** Player trail ribbon behind movement
-- ⏳ **#89** Enemy spawn-in materialize swirl
-- ⏳ **#90** Death dissolve: enemies fragment into shards
-- ⏳ **#91** XP gem merge glow when many on field
-- ⏳ **#92** Water-ripple ring on gem pickup
-- ⏳ **#93** Heat shimmer on explosion particles
-- ⏳ **#94** Menu background: slow drifting gem silhouettes
-- ⏳ **#95** Shop items get icon medallions
-- ⏳ **#96** HowTo diagrams: drawn joystick illustration
-- ⏳ **#97** Settings preview swatch of hero colors
-- ⏳ **#98** Stats screen mini bar charts
-- ⏳ **#99** Pause overlay gets dim + border frame
-- ⏳ **#100** Game-over screen: shattered gem artwork
+- ✅ **#51** Starfield gains parallax layer 2 (slow far stars)
+- ✅ **#52** Nebula gradient blobs in arena background
+- ✅ **#53** Arena grid pulses with music beat timer
+- ✅ **#54** Player hero gets rotating facet shine
+- ✅ **#55** Enemy chasers get motion stretch (squash)
+- ✅ **#56** Darts leave faint speed lines
+- ✅ **#57** Brutes get cracked-armor detail at <50% HP
+- ✅ **#58** Splitter children wobble-scale on spawn
+- ✅ **#59** Boss gets layered crown spikes
+- ✅ **#60** XP gems get inner sparkle cross
+- ✅ **#61** Hearts render as faceted gem-hearts
+- ✅ **#62** Projectiles get glow halo (radial)
+- ✅ **#63** Orbit blades get arc swoosh trail
+- ✅ **#64** Scatter pellets tint per pellet index
+- ✅ **#65** Pulse lance beam gets core + glow layers
+- ✅ **#66** Frost-chilled enemies get ice crystal overlay
+- ✅ **#67** Ember tint hook for burning enemies
+- ✅ **#68** Elite gold ring gets rotating sparkles
+- ✅ **#69** Player shield ring when i-frames active
+- ✅ **#70** Dash path gets ribbon fade
+- ✅ **#71** Wave portal rings at spawn points
+- ✅ **#72** Arena edge wall gets neon trim
+- ✅ **#73** Vignette overlay for depth
+- ✅ **#74** Ground scorch decals after explosions
+- ✅ **#75** Gem magnet stream lines
+- ✅ **#76** Low-HP desaturation of background
+- ✅ **#77** Victory confetti gems use hero colors
+- ✅ **#78** Menu hero gem gets layered glow rings
+- ✅ **#79** Title shimmer sweep passes periodically
+- ✅ **#80** Buttons get gradient fill + top highlight
+- ✅ **#81** Cards get soft shadow depth
+- ✅ **#82** Boss arena tint shifts red at boss waves
+- ✅ **#83** Frost nova ring renders as ice shards
+- ✅ **#84** Chain lightning arcs (for Tesla Coil upgrade)
+- ✅ **#85** Poison clouds render as drifting blobs
+- ✅ **#86** Meteor shadows telegraph before impact
+- ✅ **#87** Crit projectiles get star sparkle
+- ✅ **#88** Player trail ribbon behind movement
+- ✅ **#89** Enemy spawn-in materialize swirl
+- ✅ **#90** Death dissolve: enemies fragment into shards
+- ✅ **#91** XP gem merge glow when many on field
+- ✅ **#92** Water-ripple ring on gem pickup
+- ✅ **#93** Heat shimmer on explosion particles
+- ✅ **#94** Menu background: slow drifting gem silhouettes
+- ✅ **#95** Shop items get icon medallions
+- ✅ **#96** HowTo diagrams: drawn joystick illustration
+- ✅ **#97** Settings preview swatch of hero colors
+- ✅ **#98** Stats screen mini bar charts
+- ✅ **#99** Pause overlay gets dim + border frame
+- ✅ **#100** Game-over screen: shattered gem artwork
 
 ## Gameplay (101-150)
 
-- ⏳ **#101** New upgrade: Tesla Coil (chain lightning)
-- ⏳ **#102** New upgrade: Meteor Call (periodic meteors)
-- ⏳ **#103** New upgrade: Poison Vials (DoT pools)
-- ⏳ **#104** New upgrade: Thorn Aura (contact reflect)
-- ⏳ **#105** New upgrade: Gem Magnet+ (stackable radius)
-- ⏳ **#106** New upgrade: Adrenaline (speed on kill streak)
-- ⏳ **#107** New upgrade: Glass Cannon (+dmg, -maxHP)
-- ⏳ **#108** New upgrade: Second Wind (revive once)
-- ⏳ **#109** New upgrade: Dash Charges +1
-- ⏳ **#110** New upgrade: Crit Damage +50%
-- ⏳ **#111** New upgrade: XP Greed (+25% XP, +10% enemy spd)
-- ⏳ **#112** New upgrade: Shield Generator (regen shield)
-- ⏳ **#113** New enemy: Weaver (sine movement)
-- ⏳ **#114** New enemy: Lancer (charges telegraphed dash)
-- ⏳ **#115** New enemy: Orbiter (circles player, ranged)
-- ⏳ **#116** New enemy: Necroshard (splits into darts on death)
-- ⏳ **#117** New enemy: Bulwark Brute (frontal armor)
-- ⏳ **#118** Treasure Gnome: rare fleeing enemy, gem shower when caught
-- ⏳ **#119** Wave mutator: Gem Rush (double gems, faster spawns)
-- ⏳ **#120** Wave mutator: Darkness (smaller view radius)
-- ⏳ **#121** Wave mutator: Elite Surge (all elites, bonus loot)
-- ⏳ **#122** Boss ability: radial burst at 66%/33% HP
-- ⏳ **#123** Boss ability: summon minions at 50% HP
-- ⏳ **#124** Boss enrage timer after 90s (+speed/dmg)
-- ⏳ **#125** Daily seed run (same waves all day)
+- ✅ **#101** New upgrade: Tesla Coil (chain lightning)
+- ✅ **#102** New upgrade: Meteor Call (periodic meteors)
+- ✅ **#103** New upgrade: Poison Vials (DoT pools)
+- ✅ **#104** New upgrade: Thorn Aura (contact reflect)
+- ✅ **#105** New upgrade: Gem Magnet+ (stackable radius)
+- ✅ **#106** New upgrade: Adrenaline (speed on kill streak)
+- ✅ **#107** New upgrade: Glass Cannon (+dmg, -maxHP)
+- ✅ **#108** New upgrade: Second Wind (revive once)
+- ✅ **#109** New upgrade: Dash Charges +1
+- ✅ **#110** New upgrade: Crit Damage +50%
+- ✅ **#111** New upgrade: XP Greed (+25% XP, +10% enemy spd)
+- ✅ **#112** New upgrade: Shield Generator (regen shield)
+- ✅ **#113** New enemy: Weaver (sine movement)
+- ✅ **#114** New enemy: Lancer (charges telegraphed dash)
+- ✅ **#115** New enemy: Orbiter (circles player, ranged)
+- ✅ **#116** New enemy: Necroshard (splits into darts on death)
+- ✅ **#117** New enemy: Bulwark Brute (frontal armor)
+- ✅ **#118** Treasure Gnome: rare fleeing enemy, gem shower when caught
+- ✅ **#119** Wave mutator: Gem Rush (double gems, faster spawns)
+- ✅ **#120** Wave mutator: Darkness (smaller view radius)
+- ✅ **#121** Wave mutator: Elite Surge (all elites, bonus loot)
+- ✅ **#122** Boss ability: radial burst at 66%/33% HP
+- ✅ **#123** Boss ability: summon minions at 50% HP
+- ✅ **#124** Boss enrage timer after 90s (+speed/dmg)
+- ✅ **#125** Daily seed run (same waves all day)
 - ⏳ **#126** Endless mode after Wave 20 victory
 - ⏳ **#127** Hero 4: Pyro (fire trail dash)
 - ⏳ **#128** Hero 5: Cryo (slowing aura)

@@ -66,14 +66,55 @@ class SaveData(context: Context) {
         get() = prefs.getBoolean("vibration", true)
         set(v) = prefs.edit().putBoolean("vibration", v).apply()
 
+    // ---- v2.0 additions (new keys only; all v1.x saves stay valid) ----
+    var dmgNumbers: Boolean
+        get() = prefs.getBoolean("dmgNumbers", true)
+        set(v) = prefs.edit().putBoolean("dmgNumbers", v).apply()
+
+    var showTimer: Boolean
+        get() = prefs.getBoolean("showTimer", true)
+        set(v) = prefs.edit().putBoolean("showTimer", v).apply()
+
+    var bigHud: Boolean
+        get() = prefs.getBoolean("bigHud", false)
+        set(v) = prefs.edit().putBoolean("bigHud", v).apply()
+
+    var highContrast: Boolean
+        get() = prefs.getBoolean("highContrast", false)
+        set(v) = prefs.edit().putBoolean("highContrast", v).apply()
+
+    var elitesSlain: Int
+        get() = prefs.getInt("elitesSlain", 0)
+        set(v) = prefs.edit().putInt("elitesSlain", v).apply()
+
+    var heartsCollected: Int
+        get() = prefs.getInt("heartsCollected", 0)
+        set(v) = prefs.edit().putInt("heartsCollected", v).apply()
+
+    var totalPlaytime: Long
+        get() = prefs.getLong("totalPlaytime", 0L)
+        set(v) = prefs.edit().putLong("totalPlaytime", v).apply()
+
+    var dailyBest: Int
+        get() = prefs.getInt("dailyBest", 0)
+        set(v) = prefs.edit().putInt("dailyBest", v).apply()
+
+    var dailyDate: String
+        get() = prefs.getString("dailyDate", "") ?: ""
+        set(v) = prefs.edit().putString("dailyDate", v).apply()
+
+    fun bestWaveChar(i: Int) = prefs.getInt("bestWaveChar$i", 0)
+    fun setBestWaveChar(i: Int, v: Int) { prefs.edit().putInt("bestWaveChar$i", v).apply() }
+
     fun ownsChar(i: Int) = (charUnlocks shr i) and 1 == 1
     fun ownsWeapon(i: Int) = (weaponUnlocks shr i) and 1 == 1
     fun unlockChar(i: Int) { charUnlocks = charUnlocks or (1 shl i) }
     fun unlockWeapon(i: Int) { weaponUnlocks = weaponUnlocks or (1 shl i) }
 
     /** Bank the gems from a finished run and update records. Returns true if new high score. */
-    fun recordRun(score: Int, wave: Int, kills: Int, gemsEarned: Int, victory: Boolean): Boolean {
+    fun recordRun(score: Int, wave: Int, kills: Int, gemsEarned: Int, victory: Boolean, playSecs: Long = 0L): Boolean {
         gemBank += gemsEarned
+        totalPlaytime += playSecs
         totalKills += kills
         totalRuns += 1
         if (victory) victories += 1
