@@ -66,6 +66,106 @@ class SaveData(context: Context) {
         get() = prefs.getBoolean("vibration", true)
         set(v) = prefs.edit().putBoolean("vibration", v).apply()
 
+    var musicOn: Boolean
+        get() = prefs.getBoolean("musicOn", true)
+        set(v) = prefs.edit().putBoolean("musicOn", v).apply()
+
+    var muteAll: Boolean
+        get() = prefs.getBoolean("muteAll", false)
+        set(v) = prefs.edit().putBoolean("muteAll", v).apply()
+
+    // Batch M (Menus #301-#325)
+    var gfxQuality: Int
+        get() = prefs.getInt("gfxQuality", 0)
+        set(v) = prefs.edit().putInt("gfxQuality", v).apply()
+
+    var shakeOn: Boolean
+        get() = prefs.getBoolean("shakeOn", true)
+        set(v) = prefs.edit().putBoolean("shakeOn", v).apply()
+
+    var joySize: Float
+        get() = prefs.getFloat("joySize", 1.0f)
+        set(v) = prefs.edit().putFloat("joySize", v).apply()
+
+    var joyLeft: Boolean
+        get() = prefs.getBoolean("joyLeft", false)
+        set(v) = prefs.edit().putBoolean("joyLeft", v).apply()
+
+    var totalDamage: Long
+        get() = prefs.getLong("totalDamage", 0L)
+        set(v) = prefs.edit().putLong("totalDamage", v).apply()
+
+    var totalGemsEarned: Long
+        get() = prefs.getLong("totalGemsEarned", 0L)
+        set(v) = prefs.edit().putLong("totalGemsEarned", v).apply()
+
+    var bankedRerolls: Int
+        get() = prefs.getInt("bankedRerolls", 0)
+        set(v) = prefs.edit().putInt("bankedRerolls", v).apply()
+
+    var runSnap: String
+        get() = prefs.getString("runSnap", "") ?: ""
+        set(v) = prefs.edit().putString("runSnap", v).apply()
+
+    var runSnapWave: Int
+        get() = prefs.getInt("runSnapWave", 0)
+        set(v) = prefs.edit().putInt("runSnapWave", v).apply()
+
+    fun runsChar(i: Int) = prefs.getInt("runsChar$i", 0)
+    fun addRunChar(i: Int) { prefs.edit().putInt("runsChar$i", runsChar(i) + 1).apply() }
+    fun runsWeapon(i: Int) = prefs.getInt("runsWeapon$i", 0)
+    fun addRunWeapon(i: Int) { prefs.edit().putInt("runsWeapon$i", runsWeapon(i) + 1).apply() }
+
+    var bestRank: Int
+        get() = prefs.getInt("bestRank", 0)
+        set(v) = prefs.edit().putInt("bestRank", v).apply()
+
+    var onboarded: Boolean
+        get() = prefs.getBoolean("onboarded", false)
+        set(v) = prefs.edit().putBoolean("onboarded", v).apply()
+
+    var seenWhatsNew: Boolean
+        get() = prefs.getBoolean("seenWhatsNew", false)
+        set(v) = prefs.edit().putBoolean("seenWhatsNew", v).apply()
+
+    var shopSort: Boolean
+        get() = prefs.getBoolean("shopSort", false)
+        set(v) = prefs.edit().putBoolean("shopSort", v).apply()
+
+    var bestEndlessWave: Int
+        get() = prefs.getInt("bestEndlessWave", 0)
+        set(v) = prefs.edit().putInt("bestEndlessWave", v).apply()
+
+    var manualAim: Boolean
+        get() = prefs.getBoolean("manualAim", false)
+        set(v) = prefs.edit().putBoolean("manualAim", v).apply()
+
+    var aimAssist: Int
+        get() = prefs.getInt("aimAssist", 1)
+        set(v) = prefs.edit().putInt("aimAssist", v).apply()
+
+    var joySens: Float
+        get() = prefs.getFloat("joySens", 1.0f)
+        set(v) = prefs.edit().putFloat("joySens", v).apply()
+
+    var pauseGuard: Boolean
+        get() = prefs.getBoolean("pauseGuard", false)
+        set(v) = prefs.edit().putBoolean("pauseGuard", v).apply()
+
+    var btnOpacity: Float
+        get() = prefs.getFloat("btnOpacity", 0.85f)
+        set(v) = prefs.edit().putFloat("btnOpacity", v).apply()
+
+    var btnScale: Float
+        get() = prefs.getFloat("btnScale", 1.0f)
+        set(v) = prefs.edit().putFloat("btnScale", v).apply()
+
+    var oneHanded: Boolean
+        get() = prefs.getBoolean("oneHanded", false)
+        set(v) = prefs.edit().putBoolean("oneHanded", v).apply()
+
+    fun resetAll() { prefs.edit().clear().apply() }
+
     // ---- v2.0 additions (new keys only; all v1.x saves stay valid) ----
     var dmgNumbers: Boolean
         get() = prefs.getBoolean("dmgNumbers", true)
@@ -94,6 +194,34 @@ class SaveData(context: Context) {
     var totalPlaytime: Long
         get() = prefs.getLong("totalPlaytime", 0L)
         set(v) = prefs.edit().putLong("totalPlaytime", v).apply()
+
+    var permCrit: Int
+        get() = prefs.getInt("permCrit", 0)
+        set(v) = prefs.edit().putInt("permCrit", v).apply()
+
+    var permMagnet: Int
+        get() = prefs.getInt("permMagnet", 0)
+        set(v) = prefs.edit().putInt("permMagnet", v).apply()
+
+    var permDash: Int
+        get() = prefs.getInt("permDash", 0)
+        set(v) = prefs.edit().putInt("permDash", v).apply()
+
+    var reviveTokens: Int
+        get() = prefs.getInt("reviveTokens", 0)
+        set(v) = prefs.edit().putInt("reviveTokens", v).apply()
+
+    var bossKills: Int
+        get() = prefs.getInt("bossKills", 0)
+        set(v) = prefs.edit().putInt("bossKills", v).apply()
+
+    var heroDiscount: Boolean
+        get() = prefs.getBoolean("heroDiscount", false)
+        set(v) = prefs.edit().putBoolean("heroDiscount", v).apply()
+
+    var hardMode: Boolean
+        get() = prefs.getBoolean("hardMode", false)
+        set(v) = prefs.edit().putBoolean("hardMode", v).apply()
 
     var dailyBest: Int
         get() = prefs.getInt("dailyBest", 0)

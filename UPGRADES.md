@@ -139,294 +139,320 @@ after gradlew assembleDebug passes on the Dell; emulator spot checks at
 - ✅ **#123** Boss ability: summon minions at 50% HP
 - ✅ **#124** Boss enrage timer after 90s (+speed/dmg)
 - ✅ **#125** Daily seed run (same waves all day)
-- ⏳ **#126** Endless mode after Wave 20 victory
-- ⏳ **#127** Hero 4: Pyro (fire trail dash)
-- ⏳ **#128** Hero 5: Cryo (slowing aura)
-- ⏳ **#129** Weapon 5: Tesla Arc (auto chain shots)
-- ⏳ **#130** Weapon 6: Meteor Staff (lobbed AoE)
-- ⏳ **#131** Weapon 7: Void Repeater (pierce + lifesteal small)
-- ⏳ **#132** Combo decay pauses while dashing
-- ⏳ **#133** Hearts also drop from wave-clear bonus
-- ⏳ **#134** XP gems merge into bigger gems over time
-- ⏳ **#135** Magnet vacuum event on level-up (collect all)
-- ⏳ **#136** Dash through enemies deals small damage
-- ⏳ **#137** Standing still charges a focus shot (sniper)
-- ⏳ **#138** Moving builds dodge chance (Swift passive rework)
-- ⏳ **#139** Elite drops guaranteed upgrade reroll token
-- ⏳ **#140** Reroll button on level-up (1 per run + tokens)
-- ⏳ **#141** Banish: skip a card for +25 gems
-- ⏳ **#142** Shop: permanent Crit +2% (stackable x5)
-- ⏳ **#143** Shop: permanent Magnet +10% (stackable x5)
-- ⏳ **#144** Shop: permanent Dash cooldown -5% (x4)
-- ⏳ **#145** Shop: revive token consumable
-- ⏳ **#146** Challenge waves every 5 (optional bonus objective)
-- ⏳ **#147** Kill streak milestones grant gems (50/100/200)
-- ⏳ **#148** First-boss kill grants bonus hero unlock discount
-- ⏳ **#149** Hard mode toggle (enemy +30%, loot +50%)
-- ⏳ **#150** Boss-death cinematic pause (slow-mo + banner)
+- ✅ **#126** Endless mode after Wave 20 victory
+- ✅ **#127** Hero 4: Pyro (fire trail dash)
+- ✅ **#128** Hero 5: Cryo (slowing aura)
+- ✅ **#129** Weapon 5: Tesla Arc (auto chain shots)
+- ✅ **#130** Weapon 6: Meteor Staff (lobbed AoE)
+- ✅ **#131** Weapon 7: Void Repeater (pierce + lifesteal small)
+- ✅ **#132** Combo decay pauses while dashing
+- ✅ **#133** Hearts also drop from wave-clear bonus (landed early in Batch E, verified there)
+- ✅ **#134** XP gems merge into bigger gems over time
+- ✅ **#135** Magnet vacuum event on level-up (collect all)
+- ✅ **#136** Dash through enemies deals small damage
+- ✅ **#137** Standing still charges a focus shot (sniper)
+- ✅ **#138** Moving builds dodge chance (Swift passive rework)
+- ✅ **#139** Elite drops guaranteed upgrade reroll token
+- ✅ **#140** Reroll button on level-up (1 per run + tokens)
+- ✅ **#141** Banish: skip a card for +25 gems
+- ✅ **#142** Shop: permanent Crit +2% (stackable x5)
+- ✅ **#143** Shop: permanent Magnet +10% (stackable x5)
+- ✅ **#144** Shop: permanent Dash cooldown -5% (x4)
+- ✅ **#145** Shop: revive token consumable
+- ✅ **#146** Challenge waves every 5 (optional bonus objective)
+- ✅ **#147** Kill streak milestones grant gems (50/100/200)
+- ✅ **#148** First-boss kill grants bonus hero unlock discount
+- ✅ **#149** Hard mode toggle (enemy +30%, loot +50%)
+- ✅ **#150** Boss-death cinematic pause (slow-mo + banner)
 
 ## Animations (151-200)
 
-- ⏳ **#151** Button press: scale-down bounce
-- ⏳ **#152** Button release: spring overshoot
-- ⏳ **#153** Menu enter: cards stagger fade-slide in
-- ⏳ **#154** Screen transitions: crossfade + slight zoom
-- ⏳ **#155** Title letters stagger drop-in on menu load
-- ⏳ **#156** Hero gem idle: breathing scale
-- ⏳ **#157** Satellite gems orbit with easing trails
-- ⏳ **#158** Gem rain accelerates with slight sway
-- ⏳ **#159** Player spawn: materialize scale-in
-- ⏳ **#160** Enemy spawn: portal swirl scale-in
-- ⏳ **#161** Enemy death: shard burst + fade
-- ⏳ **#162** Hit flash: enemy white-flash 60ms
-- ⏳ **#163** Player hurt: knockback slide + shake decay
-- ⏳ **#164** Dash: stretch hero along dash vector
-- ⏳ **#165** Level-up: slow-mo 0.3x for 0.5s then cards
-- ⏳ **#166** Cards flip in (scaleX flip)
-- ⏳ **#167** XP gem pickup: fly-to-HUD arc
-- ⏳ **#168** Heart pickup: rise + expand ring
-- ⏳ **#169** Wave banner: letterspacing expand-in
-- ⏳ **#170** Boss intro: zoom pulse + name slam
-- ⏳ **#171** Combo milestone: meter pop + shake
-- ⏳ **#172** Score floats: rise with ease-out + fade
-- ⏳ **#173** Crit floats: spin-in
-- ⏳ **#174** Shop purchase: coin burst to gem counter
-- ⏳ **#175** Settings toggle: slide knob animation
-- ⏳ **#176** Slider drag: thumb grows
-- ⏳ **#177** Pause: overlay slides down
-- ⏳ **#178** Game over: gem shatter slow fall
-- ⏳ **#179** Victory: rising gem fountain
-- ⏳ **#180** HowTo pages: swipe slide transitions
-- ⏳ **#181** Stats bars animate to values on open
-- ⏳ **#182** Joystick knob: spring return
-- ⏳ **#183** Dash cooldown: sweep reveal
-- ⏳ **#184** Projectile spawn: muzzle recoil on hero
-- ⏳ **#185** Orbit blades: spin-up acceleration
-- ⏳ **#186** Boss death: multi-stage explosion sequence
-- ⏳ **#187** Elite spawn: beam of light + ring
-- ⏳ **#188** Frost apply: crystal grow-in
-- ⏳ **#189** Lightning: flicker 3 frames
-- ⏳ **#190** Meteor: shadow grows + streak fall
-- ⏳ **#191** Poison pool: bubbling pulse
-- ⏳ **#192** Shield break: ring shatter
-- ⏳ **#193** Shield regen: ring regrow shimmer
-- ⏳ **#194** Second Wind revive: phoenix ring burst
-- ⏳ **#195** Focus charge: gathering particles
-- ⏳ **#196** Menu idle attract: demo ghost after 30s idle
-- ⏳ **#197** Wave clear: banner sweep + gem sparkle rain
-- ⏳ **#198** Elite death: slow spiral implosion
-- ⏳ **#199** Boss spawn: ground-crack rise-in
-- ⏳ **#200** Low HP: pulsing red border (full strength)
+- ✅ **#151** Button press: scale-down bounce
+- ✅ **#152** Button release: spring overshoot
+- ✅ **#153** Menu enter: cards stagger fade-slide in
+- ✅ **#154** Screen transitions: crossfade + slight zoom
+- ✅ **#155** Title letters stagger drop-in on menu load
+- ✅ **#156** Hero gem idle: breathing scale
+- ✅ **#157** Satellite gems orbit with easing trails
+- ✅ **#158** Gem rain accelerates with slight sway
+- ✅ **#159** Player spawn: materialize scale-in
+- ✅ **#160** Enemy spawn: portal swirl scale-in
+- ✅ **#161** Enemy death: shard burst + fade
+- ✅ **#162** Hit flash: enemy white-flash 60ms
+- ✅ **#163** Player hurt: knockback slide + shake decay
+- ✅ **#164** Dash: stretch hero along dash vector
+- ✅ **#165** Level-up: slow-mo 0.3x for 0.5s then cards
+- ✅ **#166** Cards flip in (scaleX flip)
+- ✅ **#167** XP gem pickup: fly-to-HUD arc
+- ✅ **#168** Heart pickup: rise + expand ring
+- ✅ **#169** Wave banner: letterspacing expand-in
+- ✅ **#170** Boss intro: zoom pulse + name slam
+- ✅ **#171** Combo milestone: meter pop + shake
+- ✅ **#172** Score floats: rise with ease-out + fade
+- ✅ **#173** Crit floats: spin-in
+- ✅ **#174** Shop purchase: coin burst to gem counter
+- ✅ **#175** Settings toggle: slide knob animation
+- ✅ **#176** Slider drag: thumb grows
+- ✅ **#177** Pause: overlay slides down
+- ✅ **#178** Game over: gem shatter slow fall
+- ✅ **#179** Victory: rising gem fountain
+- ✅ **#180** HowTo pages: swipe slide transitions
+- ✅ **#181** Stats bars animate to values on open
+- ✅ **#182** Joystick knob: spring return
+- ✅ **#183** Dash cooldown: sweep reveal
+- ✅ **#184** Projectile spawn: muzzle recoil on hero
+- ✅ **#185** Orbit blades: spin-up acceleration
+- ✅ **#186** Boss death: multi-stage explosion sequence
+- ✅ **#187** Elite spawn: beam of light + ring
+- ✅ **#188** Frost apply: crystal grow-in
+- ✅ **#189** Lightning: flicker 3 frames
+- ✅ **#190** Meteor: shadow grows + streak fall
+- ✅ **#191** Poison pool: bubbling pulse
+- ✅ **#192** Shield break: ring shatter
+- ✅ **#193** Shield regen: ring regrow shimmer
+- ✅ **#194** Second Wind revive: phoenix ring burst
+- ✅ **#195** Focus charge: gathering particles
+- ✅ **#196** Menu idle attract: demo ghost after 30s idle
+- ✅ **#197** Wave clear: banner sweep + gem sparkle rain
+- ✅ **#198** Elite death: slow spiral implosion
+- ✅ **#199** Boss spawn: ground-crack rise-in
+- ✅ **#200** Low HP: pulsing red border (full strength)
 
 ## Effects (201-250)
 
-- ⏳ **#201** Screen shake: small on brute death
-- ⏳ **#202** Screen shake: large on boss death
-- ⏳ **#203** Hitstop: 40ms freeze on elite kill
-- ⏳ **#204** Hitstop: 90ms freeze on boss phase change
-- ⏳ **#205** Particle: confetti gems on victory
-- ⏳ **#206** Particle: soul wisps from killed elites
-- ⏳ **#207** Particle: frost shards on chilled death
-- ⏳ **#208** Particle: ember sparks for Pyro dash
-- ⏳ **#209** Particle: electric arcs ambient on Tesla hits
-- ⏳ **#210** Particle: poison bubbles in pools
-- ⏳ **#211** Particle: meteor impact dust ring
-- ⏳ **#212** Particle: dash wind streaks
-- ⏳ **#213** Particle: level-up pillar of light
-- ⏳ **#214** Particle: gem sparkle ambient around hero
-- ⏳ **#215** Particle: heart sparkle on heal
-- ⏳ **#216** Particle: shield hit ripple
-- ⏳ **#217** Particle: boss death gem fountain
-- ⏳ **#218** Particle: wave-clear sweep sparkles
-- ⏳ **#219** Particle: muzzle smoke puff
-- ⏳ **#220** Particle: projectile impact sparks (color by dmg)
-- ⏳ **#221** Particle: crit impact star burst
-- ⏳ **#222** Particle: XP merge flash
-- ⏳ **#223** Particle: spawn portal sparks
-- ⏳ **#224** Particle: footstep dust while moving fast
-- ⏳ **#225** Particle: rain of shards on game over
-- ⏳ **#226** Flash: white flash frame on boss death
-- ⏳ **#227** Flash: red edge flash on hurt (stronger)
-- ⏳ **#228** Flash: gold flash on elite kill
-- ⏳ **#229** Slow-mo: brief 0.5x on player near-death save
-- ⏳ **#230** Chromatic offset on big explosions (RGB split fake)
-- ⏳ **#231** Shockwave ring on meteor impact
-- ⏳ **#232** Shockwave ring on level-up
-- ⏳ **#233** Shockwave ring on Second Wind
-- ⏳ **#234** Trail: comet trail for meteors
-- ⏳ **#235** Trail: afterimage for Lancer charge
-- ⏳ **#236** Trail: blade arcs for orbit blades
-- ⏳ **#237** Trail: frost mist behind chilled enemies
-- ⏳ **#238** Glow pulse on idle menu buttons
-- ⏳ **#239** Floating ambient dust motes in arena
-- ⏳ **#240** Kill streak fire aura around hero at combo 25+
-- ⏳ **#241** Boss intro letterbox bars
-- ⏳ **#242** Darkness mutator: light radius gradient
-- ⏳ **#243** Pickup vacuum lines during level-up vacuum
-- ⏳ **#244** Damage direction indicator arc
-- ⏳ **#245** Explosion light bloom (radial gradient)
-- ⏳ **#246** Heart drop beacon light column
-- ⏳ **#247** Elite beacon light column
-- ⏳ **#248** Reroll token sparkle trail in shop
-- ⏳ **#249** Victory slow zoom on hero
-- ⏳ **#250** Game-over desaturate + crack overlay
+- ✅ **#201** Screen shake: small on brute death
+- ✅ **#202** Screen shake: large on boss death
+- ✅ **#203** Hitstop: 40ms freeze on elite kill
+- ✅ **#204** Hitstop: 90ms freeze on boss phase change
+- ✅ **#205** Particle: confetti gems on victory
+- ✅ **#206** Particle: soul wisps from killed elites
+- ✅ **#207** Particle: frost shards on chilled death
+- ✅ **#208** Particle: ember sparks for Pyro dash
+- ✅ **#209** Particle: electric arcs ambient on Tesla hits
+- ✅ **#210** Particle: poison bubbles in pools
+- ✅ **#211** Particle: meteor impact dust ring
+- ✅ **#212** Particle: dash wind streaks
+- ✅ **#213** Particle: level-up pillar of light
+- ✅ **#214** Particle: gem sparkle ambient around hero
+- ✅ **#215** Particle: heart sparkle on heal
+- ✅ **#216** Particle: shield hit ripple
+- ✅ **#217** Particle: boss death gem fountain
+- ✅ **#218** Particle: wave-clear sweep sparkles
+- ✅ **#219** Particle: muzzle smoke puff
+- ✅ **#220** Particle: projectile impact sparks (color by dmg)
+- ✅ **#221** Particle: crit impact star burst
+- ✅ **#222** Particle: XP merge flash
+- ✅ **#223** Particle: spawn portal sparks
+- ✅ **#224** Particle: footstep dust while moving fast
+- ✅ **#225** Particle: rain of shards on game over
+- ✅ **#226** Flash: white flash frame on boss death
+- ✅ **#227** Flash: red edge flash on hurt (stronger)
+- ✅ **#228** Flash: gold flash on elite kill
+- ✅ **#229** Slow-mo: brief 0.5x on player near-death save
+- ✅ **#230** Chromatic offset on big explosions (RGB split fake)
+- ✅ **#231** Shockwave ring on meteor impact
+- ✅ **#232** Shockwave ring on level-up
+- ✅ **#233** Shockwave ring on Second Wind
+- ✅ **#234** Trail: comet trail for meteors
+- ✅ **#235** Trail: afterimage for Lancer charge
+- ✅ **#236** Trail: blade arcs for orbit blades
+- ✅ **#237** Trail: frost mist behind chilled enemies
+- ✅ **#238** Glow pulse on idle menu buttons
+- ✅ **#239** Floating ambient dust motes in arena
+- ✅ **#240** Kill streak fire aura around hero at combo 25+
+- ✅ **#241** Boss intro letterbox bars
+- ✅ **#242** Darkness mutator: light radius gradient
+- ✅ **#243** Pickup vacuum lines during level-up vacuum
+- ✅ **#244** Damage direction indicator arc
+- ✅ **#245** Explosion light bloom (radial gradient)
+- ✅ **#246** Heart drop beacon light column
+- ✅ **#247** Elite beacon light column
+- ✅ **#248** Reroll token sparkle trail in shop
+- ✅ **#249** Victory slow zoom on hero
+- ✅ **#250** Game-over desaturate + crack overlay
 
 ## Sounds (251-300)
 
-- ⏳ **#251** New SFX: tesla zap (arcing buzz-crack)
-- ⏳ **#252** New SFX: meteor whistle + boom
-- ⏳ **#253** New SFX: poison bubble burst
-- ⏳ **#254** New SFX: chain lightning sizzle
-- ⏳ **#255** New SFX: shield hit (metallic ping)
-- ⏳ **#256** New SFX: shield break (glass ring)
-- ⏳ **#257** New SFX: revive phoenix chime
-- ⏳ **#258** New SFX: elite spawn horn
-- ⏳ **#259** New SFX: combo milestone sting (5 tiers)
-- ⏳ **#260** New SFX: reroll dice shuffle
-- ⏳ **#261** New SFX: banish poof
-- ⏳ **#262** New SFX: purchase cha-ching arpeggio
-- ⏳ **#263** New SFX: error buzz (can't afford)
-- ⏳ **#264** New SFX: wave clear jingle
-- ⏳ **#265** New SFX: boss phase roar
-- ⏳ **#266** New SFX: heart pickup warm chime
-- ⏳ **#267** New SFX: gem merge sparkle
-- ⏳ **#268** New SFX: focus full-charge ping
-- ⏳ **#269** New SFX: lancer charge whoosh
-- ⏳ **#270** New SFX: weaver warp blip
-- ⏳ **#271** New SFX: necro split triple pop
-- ⏳ **#272** New SFX: treasure gnome laugh
-- ⏳ **#273** Music: boss variant of battle loop (added drums)
-- ⏳ **#274** Music: low-HP heartbeat layer under battle
-- ⏳ **#275** Music: victory fanfare extended (8 bars)
-- ⏳ **#276** Music: menu loop adds soft pad swell
-- ⏳ **#277** Music: shop theme (menu variant, plucked)
-- ⏳ **#278** Music: endless mode loop (battle + extra arp)
-- ⏳ **#279** SFX mixing: shoot pitch varies +-5% randomly
-- ⏳ **#280** SFX mixing: hit pitch drops as enemy HP drops
-- ⏳ **#281** SFX mixing: distance-based volume for explosions
-- ⏳ **#282** SFX mixing: master limiter to prevent clipping
-- ⏳ **#283** SFX mixing: duck music 30% during boss roar
-- ⏳ **#284** Haptics: light tap on button press
-- ⏳ **#285** Haptics: double pulse on elite kill
-- ⏳ **#286** Haptics: long buzz on boss death
-- ⏳ **#287** Haptics: heartbeat pattern at low HP
-- ⏳ **#288** Haptics: rhythm pulse on combo milestones
-- ⏳ **#289** Haptics toggle in settings
-- ⏳ **#290** Music toggle separate from SFX toggle
-- ⏳ **#291** Volume sliders get live preview sounds
-- ⏳ **#292** Mute-all quick toggle on pause screen
-- ⏳ **#293** Audio focus: pause music on host interruption hook
-- ⏳ **#294** Countdown beeps before wave start (3-2-1)
-- ⏳ **#295** Countdown final beep higher pitch
-- ⏳ **#296** Spawn warning blip at portal open
-- ⏳ **#297** XP pickup pitch ladder (rises with chain)
-- ⏳ **#298** Level-up chord (major arpeggio)
-- ⏳ **#299** Game-over descending sting (recomposed, longer)
-- ⏳ **#300** Victory ascending sting (recomposed, longer)
+- ✅ **#251** New SFX: tesla zap (arcing buzz-crack)
+- ✅ **#252** New SFX: meteor whistle + boom
+- ✅ **#253** New SFX: poison bubble burst
+- ✅ **#254** New SFX: chain lightning sizzle
+- ✅ **#255** New SFX: shield hit (metallic ping)
+- ✅ **#256** New SFX: shield break (glass ring)
+- ✅ **#257** New SFX: revive phoenix chime
+- ✅ **#258** New SFX: elite spawn horn
+- ✅ **#259** New SFX: combo milestone sting (5 tiers)
+- ✅ **#260** New SFX: reroll dice shuffle
+- ✅ **#261** New SFX: banish poof
+- ✅ **#262** New SFX: purchase cha-ching arpeggio
+- ✅ **#263** New SFX: error buzz (can't afford)
+- ✅ **#264** New SFX: wave clear jingle
+- ✅ **#265** New SFX: boss phase roar
+- ✅ **#266** New SFX: heart pickup warm chime
+- ✅ **#267** New SFX: gem merge sparkle
+- ✅ **#268** New SFX: focus full-charge ping
+- ✅ **#269** New SFX: lancer charge whoosh
+- ✅ **#270** New SFX: weaver warp blip
+- ✅ **#271** New SFX: necro split triple pop
+- ✅ **#272** New SFX: treasure gnome laugh
+- ✅ **#273** Music: boss variant of battle loop (added drums)
+- ✅ **#274** Music: low-HP heartbeat layer under battle
+- ✅ **#275** Music: victory fanfare extended (8 bars)
+- ✅ **#276** Music: menu loop adds soft pad swell
+- ✅ **#277** Music: shop theme (menu variant, plucked)
+- ✅ **#278** Music: endless mode loop (battle + extra arp)
+- ✅ **#279** SFX mixing: shoot pitch varies +-5% randomly
+- ✅ **#280** SFX mixing: hit pitch drops as enemy HP drops
+- ✅ **#281** SFX mixing: distance-based volume for explosions
+- ✅ **#282** SFX mixing: master limiter to prevent clipping
+- ✅ **#283** SFX mixing: duck music 30% during boss roar
+- ✅ **#284** Haptics: light tap on button press
+- ✅ **#285** Haptics: double pulse on elite kill
+- ✅ **#286** Haptics: long buzz on boss death
+- ✅ **#287** Haptics: heartbeat pattern at low HP
+- ✅ **#288** Haptics: rhythm pulse on combo milestones
+- ✅ **#289** Haptics toggle in settings
+- ✅ **#290** Music toggle separate from SFX toggle
+- ✅ **#291** Volume sliders get live preview sounds
+- ✅ **#292** Mute-all quick toggle on pause screen
+- ✅ **#293** Audio focus: pause music on host interruption hook
+- ✅ **#294** Countdown beeps before wave start (3-2-1)
+- ✅ **#295** Countdown final beep higher pitch
+- ✅ **#296** Spawn warning blip at portal open
+- ✅ **#297** XP pickup pitch ladder (rises with chain)
+- ✅ **#298** Level-up chord (major arpeggio)
+- ✅ **#299** Game-over descending sting (recomposed, longer)
+- ✅ **#300** Victory ascending sting (recomposed, longer)
 
 ## Menus (301-350)
 
-- ⏳ **#301** Main menu: Continue Run button (if run saved)
-- ⏳ **#302** Main menu: Daily Run button
-- ⏳ **#303** Main menu: Endless Mode button (post-victory)
-- ⏳ **#304** Hero select moves to its own screen
-- ⏳ **#305** Weapon select moves to its own screen
-- ⏳ **#306** Hero detail card (stats bars + passive text)
-- ⏳ **#307** Weapon detail card (DPS chart)
-- ⏳ **#308** Shop tab: Heroes
-- ⏳ **#309** Shop tab: Weapons
-- ⏳ **#310** Shop tab: Permanent Upgrades
-- ⏳ **#311** Shop tab: Consumables
-- ⏳ **#312** Settings: Graphics quality (Auto/High/Low)
-- ⏳ **#313** Settings: Damage numbers toggle
-- ⏳ **#314** Settings: Screen shake toggle
-- ⏳ **#315** Settings: Haptics toggle
-- ⏳ **#316** Settings: Music/SFX toggle split
-- ⏳ **#317** Settings: Joystick size slider
-- ⏳ **#318** Settings: Joystick side (left/right) option
-- ⏳ **#319** Settings: Reset save (double confirm)
-- ⏳ **#320** Stats: runs by hero chart
-- ⏳ **#321** Stats: damage dealt total
-- ⏳ **#322** Stats: gems earned lifetime
-- ⏳ **#323** Stats: favorite weapon (most runs)
-- ⏳ **#324** HowTo: interactive dash demo page
-- ⏳ **#325** HowTo: enemy gallery page (all types)
-- ⏳ **#326** HowTo: upgrade gallery page
-- ⏳ **#327** Pause: settings quick toggles row
-- ⏳ **#328** Pause: run summary (build list so far)
-- ⏳ **#329** Game over: build recap list
-- ⏳ **#330** Victory: build recap + clear time + rank
-- ⏳ **#331** Rank system on victory (S/A/B/C by time+deaths)
-- ⏳ **#332** Level-up: show owned build icons row
-- ⏳ **#333** Level-up: reroll + banish buttons
-- ⏳ **#334** Daily run: seed shown + share-code text
-- ⏳ **#335** Daily run: best daily score in stats
-- ⏳ **#336** Credits line in settings (QamoTech)
-- ⏳ **#337** Menu footer: total gems + best wave chips
-- ⏳ **#338** Onboarding: first-run 3-tip carousel
-- ⏳ **#339** Whats-new panel for v2.0 on first open
-- ⏳ **#340** Shop: owned items show EQUIPPED badge
-- ⏳ **#341** Shop: sort by price toggle
-- ⏳ **#342** Hero screen: unlock progress hints
-- ⏳ **#343** Weapon screen: unlock progress hints
-- ⏳ **#344** Confirm dialogs get animated entrance
-- ⏳ **#345** All sub-screens get back-button top-left
-- ⏳ **#346** Menu music crossfades to battle on start
-- ⏳ **#347** Endless menu: best endless wave shown
-- ⏳ **#348** Quick-restart button on game-over screen
-- ⏳ **#349** Main menu: high-score ticker under title
-- ⏳ **#350** Settings: About page (version + credits)
+- ✅ **#301** Main menu: Continue Run button (if run saved)
+- ✅ **#302** Main menu: Daily Run button
+- ✅ **#303** Main menu: Endless Mode button (post-victory)
+- ✅ **#304** Hero select moves to its own screen
+- ✅ **#305** Weapon select moves to its own screen
+- ✅ **#306** Hero detail card (stats bars + passive text)
+- ✅ **#307** Weapon detail card (DPS chart)
+- ✅ **#308** Shop tab: Heroes
+- ✅ **#309** Shop tab: Weapons
+- ✅ **#310** Shop tab: Permanent Upgrades
+- ✅ **#311** Shop tab: Consumables
+- ✅ **#312** Settings: Graphics quality (Auto/High/Low)
+- ✅ **#313** Settings: Damage numbers toggle
+- ✅ **#314** Settings: Screen shake toggle
+- ✅ **#315** Settings: Haptics toggle
+- ✅ **#316** Settings: Music/SFX toggle split
+- ✅ **#317** Settings: Joystick size slider
+- ✅ **#318** Settings: Joystick side (left/right) option
+- ✅ **#319** Settings: Reset save (double confirm)
+- ✅ **#320** Stats: runs by hero chart
+- ✅ **#321** Stats: damage dealt total
+- ✅ **#322** Stats: gems earned lifetime
+- ✅ **#323** Stats: favorite weapon (most runs)
+- ✅ **#324** HowTo: interactive dash demo page
+- ✅ **#325** HowTo: enemy gallery page (all types)
+- ✅ **#326** HowTo: upgrade gallery page
+- ✅ **#327** Pause: settings quick toggles row
+- ✅ **#328** Pause: run summary (build list so far)
+- ✅ **#329** Game over: build recap list
+- ✅ **#330** Victory: build recap + clear time + rank
+- ✅ **#331** Rank system on victory (S/A/B/C by time+deaths)
+- ✅ **#332** Level-up: show owned build icons row
+- ✅ **#333** Level-up: reroll + banish buttons
+- ✅ **#334** Daily run: seed shown + share-code text
+- ✅ **#335** Daily run: best daily score in stats
+- ✅ **#336** Credits line in settings (QamoTech)
+- ✅ **#337** Menu footer: total gems + best wave chips
+- ✅ **#338** Onboarding: first-run 3-tip carousel
+- ✅ **#339** Whats-new panel for v2.0 on first open
+- ✅ **#340** Shop: owned items show EQUIPPED badge
+- ✅ **#341** Shop: sort by price toggle
+- ✅ **#342** Hero screen: unlock progress hints
+- ✅ **#343** Weapon screen: unlock progress hints
+- ✅ **#344** Confirm dialogs get animated entrance
+- ✅ **#345** All sub-screens get back-button top-left
+- ✅ **#346** Menu music crossfades to battle on start
+- ✅ **#347** Endless menu: best endless wave shown
+- ✅ **#348** Quick-restart button on game-over screen
+- ✅ **#349** Main menu: high-score ticker under title
+- ✅ **#350** Settings: About page (version + credits)
 
 ## Controls (351-400)
 
-- ⏳ **#351** Joystick: dynamic origin (touch anywhere left zone)
-- ⏳ **#352** Joystick: dead-zone tuning (8%)
-- ⏳ **#353** Joystick: max-radius clamp with visual ring
-- ⏳ **#354** Dash: double-tap joystick side to dash
-- ⏳ **#355** Dash: dedicated button position option (left/right)
-- ⏳ **#356** Dash: swipe-up gesture alternative
-- ⏳ **#357** Aim assist: soft snap to nearest enemy (10 deg)
-- ⏳ **#358** Aim assist strength setting (Off/Low/High)
-- ⏳ **#359** Auto-fire toggle + manual aim mode
-- ⏳ **#360** Manual aim mode: right-side aim stick (twin-stick)
-- ⏳ **#361** Twin-stick: fire toward aim stick, else auto-aim
-- ⏳ **#362** Multi-touch dash while moving (verify + fix)
-- ⏳ **#363** Pause: two-finger tap shortcut
-- ⏳ **#364** Level-up: tap card OR swipe card up to pick
-- ⏳ **#365** Level-up: number keys 1-3 on hardware keyboard
-- ⏳ **#366** Keyboard: WASD/arrows movement support
-- ⏳ **#367** Keyboard: Space/Shift dash
-- ⏳ **#368** Keyboard: Esc/P pause
-- ⏳ **#369** Keyboard: Enter confirm on menus
-- ⏳ **#370** Gamepad: left stick move (basic mapping)
-- ⏳ **#371** Gamepad: A dash, Start pause (basic mapping)
-- ⏳ **#372** Haptic on joystick engage
-- ⏳ **#373** Joystick knob follows finger beyond base (float)
-- ⏳ **#374** Sensitivity slider for joystick
-- ⏳ **#375** One-handed mode: compressed HUD option
-- ⏳ **#376** Left-handed mode: dash button mirrors left
-- ⏳ **#377** Pause button long-press option (anti-accident)
-- ⏳ **#378** Edge-swipe back disabled during play (host)
-- ⏳ **#379** Touch ripple feedback on buttons
-- ⏳ **#380** Button touch targets audited >=48dp
-- ⏳ **#381** Scroll support for long menus (drag)
-- ⏳ **#382** Pinch gesture disabled in game (avoid accidents)
-- ⏳ **#383** Stylus support verified (S Pen passthrough)
-- ⏳ **#384** Input latency: touch sampled per frame (coalesced)
-- ⏳ **#385** Buffered dash: early dash press still fires
-- ⏳ **#386** Coyote time: dash grace after stun
-- ⏳ **#387** Movement smoothing: acceleration curve
-- ⏳ **#388** Movement: analog magnitude = analog speed
-- ⏳ **#389** Diagonal movement normalized (audit + fix)
-- ⏳ **#390** Auto-pause when touch is interrupted
-- ⏳ **#391** Resume countdown 3-2-1 after unpause
-- ⏳ **#392** Tutorial: first-run joystick guide overlay
-- ⏳ **#393** Tutorial: first dash prompt when enemy near
-- ⏳ **#394** Control hints fade after first run
-- ⏳ **#395** Custom button opacity slider
-- ⏳ **#396** Custom button scale slider
-- ⏳ **#397** Reset controls to defaults button
-- ⏳ **#398** Controls preview in settings (live joystick test)
-- ⏳ **#399** Haptic tick when joystick hits max radius
-- ⏳ **#400** Aim stick dead-zone tuning (twin-stick)
+- ✅ **#351** Joystick: dynamic origin (touch anywhere left zone)
+- ✅ **#352** Joystick: dead-zone tuning (8%)
+- ✅ **#353** Joystick: max-radius clamp with visual ring
+- ✅ **#354** Dash: double-tap joystick side to dash
+- ✅ **#355** Dash: dedicated button position option (left/right)
+- ✅ **#356** Dash: swipe-up gesture alternative
+- ✅ **#357** Aim assist: soft snap to nearest enemy (10 deg)
+- ✅ **#358** Aim assist strength setting (Off/Low/High)
+- ✅ **#359** Auto-fire toggle + manual aim mode
+- ✅ **#360** Manual aim mode: right-side aim stick (twin-stick)
+- ✅ **#361** Twin-stick: fire toward aim stick, else auto-aim
+- ✅ **#362** Multi-touch dash while moving (verify + fix)
+- ✅ **#363** Pause: two-finger tap shortcut
+- ✅ **#364** Level-up: tap card OR swipe card up to pick
+- ✅ **#365** Level-up: number keys 1-3 on hardware keyboard
+- ✅ **#366** Keyboard: WASD/arrows movement support
+- ✅ **#367** Keyboard: Space/Shift dash
+- ✅ **#368** Keyboard: Esc/P pause
+- ✅ **#369** Keyboard: Enter confirm on menus
+- ✅ **#370** Gamepad: left stick move (basic mapping)
+- ✅ **#371** Gamepad: A dash, Start pause (basic mapping)
+- ✅ **#372** Haptic on joystick engage
+- ✅ **#373** Joystick knob follows finger beyond base (float)
+- ✅ **#374** Sensitivity slider for joystick
+- ✅ **#375** One-handed mode: compressed HUD option
+- ✅ **#376** Left-handed mode: dash button mirrors left
+- ✅ **#377** Pause button long-press option (anti-accident)
+- ✅ **#378** Edge-swipe back disabled during play (host)
+- ✅ **#379** Touch ripple feedback on buttons
+- ✅ **#380** Button touch targets audited >=48dp
+- ✅ **#381** Scroll support for long menus (drag)
+- ✅ **#382** Pinch gesture disabled in game (avoid accidents)
+- ✅ **#383** Stylus support verified (S Pen passthrough)
+- ✅ **#384** Input latency: touch sampled per frame (coalesced)
+- ✅ **#385** Buffered dash: early dash press still fires
+- ✅ **#386** Coyote time: dash grace after stun
+- ✅ **#387** Movement smoothing: acceleration curve
+- ✅ **#388** Movement: analog magnitude = analog speed
+- ✅ **#389** Diagonal movement normalized (audit + fix)
+- ✅ **#390** Auto-pause when touch is interrupted
+- ✅ **#391** Resume countdown 3-2-1 after unpause
+- ✅ **#392** Tutorial: first-run joystick guide overlay
+- ✅ **#393** Tutorial: first dash prompt when enemy near
+- ✅ **#394** Control hints fade after first run
+- ✅ **#395** Custom button opacity slider
+- ✅ **#396** Custom button scale slider
+- ✅ **#397** Reset controls to defaults button
+- ✅ **#398** Controls preview in settings (live joystick test)
+- ✅ **#399** Haptic tick when joystick hits max radius
+- ✅ **#400** Aim stick dead-zone tuning (twin-stick)
 
+
+## Main Units — #401–424 (v2.1, added 2026-11-18 on Nathan's screenshot report)
+- ✅ **#401** Hero layered armor plate + bright rim under the gem body
+- ✅ **#402** Hero core gem reads HP (color shifts + faster pulse when low)
+- ✅ **#403** Hero visor slit + glint tracking the aim direction
+- ✅ **#404** Hero thruster flame opposite the move vector
+- ✅ **#405** Hero level evolution: shoulder shards (5+), orbit shards (10+), halo (15+)
+- ✅ **#406** Hero hover bob idle animation
+- ✅ **#407** Soft ground shadows under hero and every enemy
+- ✅ **#408** Weapon barrel nub on the hero's aim edge
+- ✅ **#409** Hero body hurt-flash right after taking a hit
+- ✅ **#410** Per-hero signature details (crest / fins / rivets / flame / snowflake)
+- ✅ **#411** Enemy pulsing inner core sized by remaining HP
+- ✅ **#412** Enemy rim light on the player-facing edge
+- ✅ **#413** Chaser gnashing teeth toward the player
+- ✅ **#414** Dart speed ghosts + tail fins
+- ✅ **#415** Brute armor plates with rivets, shed as HP falls
+- ✅ **#416** Splitter brood blobs jiggling inside the body
+- ✅ **#417** Weaver ribbon trail segments
+- ✅ **#418** Lancer lance weapon ahead of the body, glows on telegraph
+- ✅ **#419** Orbiter satellite shards + orbit ring
+- ✅ **#420** Necroshard skull core + summoning rune circle
+- ✅ **#421** Bulwark shield flashes thick + white when it blocks a hit
+- ✅ **#422** Treasure Gnome gem-sack + sparkle trail
+- ✅ **#423** Abyss Warden armor ring, tracking eye, phase cracks
+- ✅ **#424** Elite gold trim outline on every elite unit
