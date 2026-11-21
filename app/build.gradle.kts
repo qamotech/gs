@@ -13,8 +13,8 @@ android {
         applicationId = "com.qamotech.gemstorm"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "2.1.0"
+        versionCode = 9
+        versionName = "2.5.0"
     }
 
     buildTypes {

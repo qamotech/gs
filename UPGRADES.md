@@ -456,3 +456,315 @@ after gradlew assembleDebug passes on the Dell; emulator spot checks at
 - ✅ **#422** Treasure Gnome gem-sack + sparkle trail
 - ✅ **#423** Abyss Warden armor ring, tracking eye, phase cracks
 - ✅ **#424** Elite gold trim outline on every elite unit
+- ✅ **#425** Nebula bright cores — a hot heart inside each drifting nebula blob
+- ✅ **#426** Shooting stars streak the background every ~9 seconds
+- ✅ **#427** Warm star mix — half the sky burns gold, half cyan
+- ✅ **#428** Engine trail sparks stream behind the ship while it moves
+- ✅ **#429** Thruster flame grows with ship speed
+- ✅ **#430** Gold ring on the level badge at level 10+
+- ✅ **#431** Visor glint drifts — the hero's eye feels alive
+- ✅ **#432** Damage-ghost HP bars — a white segment drains behind the green after hits
+- ✅ **#433** Brute armor rivets catch a glint of light
+- ✅ **#434** Splitter brood blobs breathe and pulse
+- ✅ **#435** Orbiter satellites trail fading shard echoes
+- ✅ **#436** Necroshard eyes flare red right before a summon
+- ✅ **#437** Lancer telegraph chevrons race down the charge line
+- ✅ **#438** Bulwark shield gets an inner sheen arc
+- ✅ **#439** Player shots carry a wide soft halo
+- ✅ **#440** Hostile orbs throb — easier to read in a swarm
+- ✅ **#441** Meteor targets get rotating crosshair ticks
+- ✅ **#442** Magnetized gems grow comet tails as they rocket home
+- ✅ **#443** Hearts beat with a soft pink ring
+- ✅ **#444** Every kill pops a small shockwave ring
+- ✅ **#445** Low-HP bar pulses with a white danger outline under 25%
+- ✅ **#446** Wave progress bar burns gold when 3 or fewer enemies remain
+- ✅ **#447** Boss bar phase ticks at the one-third marks
+- ✅ **#448** Hot-streak backlight glows behind the combo meter at 10+
+- ✅ **#449** Wave countdown numbers get a pulse ring that expands on each beat
+- ✅ **#450** Gem pickups pop a soft sparkle as they land
+- ✅ **#451** Meteor impacts leave a burnt core scorch that lingers
+- ✅ **#452** Heavy units (brutes, bulwarks, the Warden) land with a dust ring
+- ✅ **#453** Hostile shots shed faint ember trails — easier to track
+- ✅ **#454** Elite kills fountain gold particles
+- ✅ **#455** Heart drops sit on a soft ground shadow
+- ✅ **#456** Spawn-in gets a materialize shockring
+- ✅ **#457** Kill-streak milestones burst a ring at the player
+- ✅ **#458** A ring flashes at the player when a dash charge completes
+- ✅ **#459** LAST STAND pulses a red heartbeat frame at the screen edge
+- ✅ **#460** Rich gems (5+) wear a rotating sparkle
+- ✅ **#461** Charging lancers kick up dust
+- ✅ **#462** Orbiter orbit rings breathe
+- ✅ **#463** A ringed planet drifts across the deep background every ~75s
+- ✅ **#464** The brightest stars throw a cross glint
+- ✅ **#465** Weaver ribbon heads sparkle
+- ✅ **#466** Necroshard rune circle gains a breathing inner ring
+- ✅ **#467** Splitter/necro newborns pop with a birth ring (and count toward the wave total)
+- ✅ **#468** The Warden's deep phase cracks glow molten under 33% HP
+- ✅ **#469** Darts leave motion streaks
+- ✅ **#470** The aim stick grows a direction arrowhead
+- ✅ **#471** Frozen kills shatter in an icy burst
+- ✅ **#472** The Gnome's gem sack glints with loot
+- ✅ **#473** Turtle shells get real scute plates — center plate + seam lines
+- ✅ **#474** Dome gloss highlight on every shell
+- ✅ **#475** Crisp dark shell outline + slowly orbiting rim studs
+- ✅ **#476** Turtle faces: nostrils, a smile, and a cheek blush
+- ✅ **#477** Jet pods get metal bands + glowing nozzles
+- ✅ **#478** Flipper seam lines
+- ✅ **#479** Every turtle blinks every few seconds
+- ✅ **#480** Rockets trail a fading exhaust ribbon
+- ✅ **#481** Rocket button flashes a ring when a charge completes
+- ✅ **#482** Heart pickup shows ONE animated red heart (the two green text hearts are gone) + red burst feedback
+- ✅ **#483** Wave banner sits on a soft readability pill
+- ✅ **#484** First-run prompt for the rocket button, mirroring the dash prompt
+- ✅ **#485** Magnetized gems shimmer with sparkles as they fly in
+- ✅ **#486** XP bar turns gold when you're about to level
+- ✅ **#487** Boss bar shows a pale damage ghost trailing recent hits
+- ✅ **#488** Combo timer bar flashes red when it's about to expire
+- ✅ **#489** Falling meteors trail smoke puffs
+- ✅ **#490** The penned Gnome bonks the arena wall with a little star
+- ✅ **#491** XP bar fill tip glows
+- ✅ **#492** Score pops on big kills (60+)
+- ✅ **#493** Wave clear rains gold-and-emerald sparkles (replaces the old green sweep band)
+- ✅ **#494** The turtle's shell gem cycles rainbow during wave-clear
+- ✅ **#495** Dash kicks off with a hero-colored spark burst
+- ✅ **#496** Pause button breathes with a soft idle pulse
+- ✅ **#497** Nebula blobs breathe — their glow slowly pulses
+- ✅ **#498** Rockets shed orange sparks alongside the smoke trail
+- ✅ **#499** RAMPAGE callout every 25 combo
+- ✅ **#500** Idle XP gems twinkle with a rotating white glint
+- ✅ **#501** Elites wear a rotating gold double-ring
+- ✅ **#502** Bosses get a pulsing red dread ring on the ground
+- ✅ **#503** Slowed foes grow frost crystals
+- ✅ **#504** A shine sweep circles the turtle's shell gem
+- ✅ **#505** Dash leaves a flipper bubble ring behind
+- ✅ **#506** The pickup heart beats faster the more hurt you are
+- ✅ **#507** Bright-star cross glints slowly rotate
+- ✅ **#508** Spawn portals get an inner white swirl ring
+- ✅ **#509** A soft spotlight glow follows your turtle across the arena
+- ✅ **#510** Elite HP bars run gold, every foe's bar gets a bright fill tip
+- ✅ **#511** Burning foes shed rising embers
+- ✅ **#512** The Treasure Gnome leaves a gold dust trail as it flees
+- ✅ **#513** Necroshard birth rings turn fuchsia (splitter births stay green)
+- ✅ **#514** Every kill pops a quick white core-flash ring
+- ✅ **#515** Lightning bolts get a soft outer glow
+- ✅ **#516** Meteors strobe a red warning ring in the final approach
+- ✅ **#517** XP bar gains quarter ticks
+- ✅ **#518** Your HP bar trails a pale damage ghost, like the boss bar
+- ✅ **#519** A cyan arc around the shell shows dash recharge progress
+- ✅ **#520** The rich-field gem merge glow gains a rotating dashed ring
+- ✅ **#521** Fire pools grow flickering flame tongues
+- ✅ **#522** Poison pools churn a dark toxic core
+- ✅ **#523** Arena trim gains bright corner brackets
+- ✅ **#524** The boss arena tint slowly breathes
+- ✅ **#525** The countdown ring takes your hero's color
+- ✅ **#526** A tiny turtle rides the wave-progress bar
+- ✅ **#527** Rich gems wear a slow golden halo ring
+- ✅ **#528** A faint red thread reaches from a nearby heart to you
+- ✅ **#529** Twin flame wisps orbit each falling meteor
+- ✅ **#530** The joystick's outer halo breathes while you steer
+- ✅ **#531** Boss intro letterbox bars gain red edge lines
+- ✅ **#532** The pause button's idle pulse takes your hero's color
+- ✅ **#533** Critical hits shed gold spark particles
+- ✅ **#534** Ordinary hits spark white at the impact point
+- ✅ **#535** The shield bubble gains a counter-rotating dashed shell
+- ✅ **#536** A shimmer travels across the wave banner's letters
+- ✅ **#537** Weavers trail pale silk dots
+- ✅ **#538** The DASH button sweeps an arc as it recharges
+- ✅ **#539** Low HP pulses a red heartbeat glow at the screen edge
+- ✅ **#540** Brutes kick up stomp dust as they lumber
+- ✅ **#541** An orbiter's path shows as a faint ring around you
+- ✅ **#542** Deep-frozen foes get an ice-cube outline
+- ✅ **#543** Flame tips lick both ends of the boss bar
+- ✅ **#544** The aim arrowhead's core pulses white
+- ✅ **#545** A gold shimmer travels the GEMSTORM menu title
+- ✅ **#546** Rocket impacts flash white-hot
+- ✅ **#547** Flipper ripples trail your turtle as you swim
+- ✅ **#548** Nebula cores twinkle with a rotating glint
+- ✅ **#549** A slow sheen sweeps the arena grid
+- ✅ **#550** Elites get a 👑 ELITE DOWN callout
+- ✅ **#551** At 50+ combo the combo bar sprouts flames
+- ✅ **#552** Shooting stars celebrate a cleared wave
+- ✅ **#553** Snow motes drift around the Cryo turtle
+- ✅ **#554** Ember motes orbit the Pyro turtle
+- ✅ **#555** The Guardian's crest wears a golden halo
+- ✅ **#556** Bulwark's shell rivets glow warm at the core
+- ✅ **#557** Swift leaves yellow speed streaks at pace
+- ✅ **#558** The 💎N🎱 turtle's gem throws a rotating glint
+- ✅ **#559** Heavy hits (40+) read gold and bigger in damage numbers
+- ✅ **#560** Blocked shots clang a gray spark off brute armor
+- ✅ **#561** Chain-lightning victims crackle with a spark
+- ✅ **#562** Gems about to merge hum together with a faint link line
+- ✅ **#563** The Abyss Warden enters under a spotlight
+- ✅ **#564** The countdown ends with a gold GO! flash
+- ✅ **#565** Charged rocket pips glow
+- ✅ **#566** A gold underline sweeps the wave-clear text
+- ✅ **#567** The pickup heart sheds sparkles at its peak
+- ✅ **#568** A gold bead marks each elite's HP bar
+- ✅ **#569** The pause frame breathes in your hero's color
+- ✅ **#570** Golden glow orbs turn behind the victory screen
+- ✅ **#571** Red embers drift up through the game-over wreckage
+- ✅ **#572** Gold motes rise through the level-up draft
+- ✅ **#573** The Gnome sweats when you close in on it
+- ✅ **#574** Lancers telegraph their charge with a faint red line
+- ✅ **#575** Splitters jitter a ghost echo
+- ✅ **#576** Brute shoulders smolder orange
+- ✅ **#577** Darts shed ribbon dots as they weave
+- ✅ **#578** A satellite spark orbits each orbiter
+- ✅ **#579** Kill streaks pop an orange ring at your turtle
+- ✅ **#580** A Swift dodge pops a gold ring
+- ✅ **#581** The shop's gem bank glows softly gold
+- ✅ **#582** A vast slow star-ring turns in the deep background
+- ✅ **#583** The Endless wave label runs gold
+- ✅ **#584** The mutator banner line pulses
+- ✅ **#585** Summoned minis flash a fuchsia birth ring
+- ✅ **#586** Rune sparks orbit the Necroshard
+- ✅ **#587** The Bulwark Brute's guard arc rotates
+- ✅ **#588** A full chaser pack glows hungry red
+- ✅ **#589** Every 1,000 score gets a ⭐ milestone shout
+- ✅ **#590** Level-up vacuum streams burn white at the tip
+- ✅ **#591** An echo numeral ghosts behind the countdown
+- ✅ **#592** GET READY pulses on the resume countdown
+- ✅ **#593** Your level badge burns gold when a level-up is close
+- ✅ **#594** The HUD LV label runs gold near a level
+- ✅ **#595** A bead rides the heart's red thread
+- ✅ **#596** The Warden's off-screen arrow wears a pulsing halo
+- ✅ **#597** The pause RESUME button breathes a soft halo
+- ✅ **#598** Spinning end-gems cap the boss bar
+- ✅ **#599** An inner ring collapses onto each meteor's impact point
+- ✅ **#600** Fire pools shed rising embers
+- ✅ **#601** Fresh scorch marks still glow at the core
+- ✅ **#602** Expanding rings carry a whisper of fill
+- ✅ **#603** Explosion blooms burn white at the core
+- ✅ **#604** Young sparks flash a white core
+- ✅ **#605** Every fifth ambient dust mote glints
+- ✅ **#606** The Gnome's off-screen arrow wears a gold halo
+- ✅ **#607** Fire pools flicker around a pale hot core
+- ✅ **#608** A diamond spins under the TAP ROCKET prompt
+- ✅ **#609** A recharge arc sweeps the empty rocket button
+- ✅ **#610** Combo aura orbs trail a fading echo
+- ✅ **#611** A regrowing shield fills with light
+- ✅ **#612** Elite spawn portals flare gold
+- ✅ **#613** Small gems wink as they wait
+- ✅ **#614** The Warden's arrival rings out in pink
+- ✅ **#615** Sparks sift down from the shattered gem on game over
+- ✅ **#616** Every screen title gets flanking gold sparks
+- ✅ **#617** Grid nodes sparkle on the beat peak
+- ✅ **#618** Warm stars wear a soft halo
+- ✅ **#619** Ticks orbit the countdown numeral
+- ✅ **#620** A shine stripe travels the boss bar's fill
+- ✅ **#621** A gold ring warns a level-up is about to pop
+- ✅ **#622** The combo decay bar burns a fuse tip
+- ✅ **#623** The dash ring echoes inside itself
+- ✅ **#624** Young particles burn bright at the core
+- ✅ **#625** Enemy HP bars get rounded caps
+- ✅ **#626** Sparks rise inside the elite beacon column
+- ✅ **#627** The muzzle flash burns white at the core
+- ✅ **#628** Record confetti orbits the NEW HIGH SCORE shout
+- ✅ **#629** The shooting star's head glows
+- ✅ **#630** A moon rides with the ringed giant
+- ✅ **#631** The wave's last foes show as gold pips under the bar
+- ✅ **#632** A second-hand dot ticks beside the run timer
+- ✅ **#633** Big scores ring the SCORE label in gold
+- ✅ **#634** The wave-progress turtle kicks a tiny wake
+- ✅ **#635** Deep-frozen foes grow a crown crystal
+- ✅ **#636** Thorn sparks ride the boss dread ring
+- ✅ **#637** Elites get a third hairline counter-ring
+- ✅ **#638** Gnome loot bursts coin-sparks
+- ✅ **#639** Splitter births spark green
+- ✅ **#640** Necro births spark fuchsia
+- ✅ **#641** Chain bolts strike a white-hot point
+- ✅ **#642** Scorch marks keep a baked rim
+- ✅ **#643** Fire-pool flame tongues burn pale at the tip
+- ✅ **#644** Poison bubbles flash a highlight at their peak
+- ✅ **#645** The meteor impact point itself pulses
+- ✅ **#646** The meteor shadow wears a hot rim while it's high
+- ✅ **#647** A fainter echo diamond trails the aim arrowhead
+- ✅ **#648** The move-stick knob wears your hero's color at its heart
+- ✅ **#649** A glint rides the shield bubble rim
+- ✅ **#650** A charged focus ring sparkles
+- ✅ **#651** The hurt-direction arc points with a hot head
+- ✅ **#652** The arena corner brackets throb with the low-HP heartbeat
+- ✅ **#653** A sheen sweeps every button's gloss
+- ✅ **#654** The equipped hero's portrait sparkles
+- ✅ **#655** The equipped weapon's icon sparkles
+- ✅ **#656** Hero stat bars cap with a bright tip
+- ✅ **#657** The weapon DPS bar caps with a bright tip
+- ✅ **#658** Ember light pools where the game-over cracks end
+- ✅ **#659** Slow gold rays turn behind the victory hero
+- ✅ **#660** Stars spin at the ELITE DOWN shout's shoulders
+- ✅ **#661** A spark marks the hero's best-wave line
+- ✅ **#662** An affordable weapon's price line sparkles
+- ✅ **#663** GO! bursts a gold ring
+- ✅ **#664** A spark runs the wave banner's underline
+- ✅ **#665** Silk anchor beads flank the Weaver
+- ✅ **#666** The winding-up lance tip strobes white
+- ✅ **#667** A dimmer twin spark counterweights the orbiter's satellite
+- ✅ **#668** A rune ring turns inside the Necroshard
+- ✅ **#669** Rivets ride the Bulwark's guard arc
+- ✅ **#670** A gold coin bounces over the Treasure Gnome
+- ✅ **#671** A wounded Brute's core burns red
+- ✅ **#672** The Splitter's heart counter-turns
+- ✅ **#673** Minis carry a bright speck
+- ✅ **#674** The Warden crown's center gem flashes
+- ✅ **#675** The chaser's maw glows
+- ✅ **#676** Slowed foes breathe frost upward
+- ✅ **#677** Your shots wear a soft halo
+- ✅ **#678** Hostile orbs wear a warning ring
+- ✅ **#679** The rocket's tail light blinks red
+- ✅ **#680** Orbit blades spin a bright heart
+- ✅ **#681** Dash ghosts burn bright at the center
+- ✅ **#682** Gem studs ride the level-15 evolution halo
+- ✅ **#683** Snow sparkles drift inside the Cryo aura
+- ✅ **#684** Ants march the magnet ring
+- ✅ **#685** A bead rides each vacuum stream
+- ✅ **#686** A second ring breathes inside the gem merge glow
+- ✅ **#687** Sparkles orbit the pickup heart
+- ✅ **#688** The shield flashes white where the hit landed
+- ✅ **#689** Affordable shop heroes wink a gem in the corner
+- ✅ **#690** The active shop tab wears a gold bead
+- ✅ **#691** Draft cards sparkle in their rarity color
+- ✅ **#692** Stars spin beside the LEVEL UP shout
+- ✅ **#693** Stacked builds (×3+) earn a gold dot on the draft screen
+- ✅ **#694** Hero-color sparks flank PAUSED
+- ✅ **#695** The pause build line wears a gold bead
+- ✅ **#696** Live pause toggles wear a green bead
+- ✅ **#697** The pause frame is studded at its corners
+- ✅ **#698** A gold star crowns a 100+ combo
+- ✅ **#699** End-screen stat rows rest on purple hairlines
+- ✅ **#700** Gold stars guard the menu title — the 700th upgrade
+- ✅ **#701** The vignette corners breathe slowly
+- ✅ **#702** A white-hot seam lines the hurt flash
+- ✅ **#703** Warning diamonds flank the LAST STAND shout
+- ✅ **#704** Gold stars spin beside the wave CLEAR! shout
+- ✅ **#705** A gold halo breathes behind the welcome icon
+- ✅ **#706** Gold bullets spin beside each What's New line
+- ✅ **#707** Sparkles orbit the About title
+- ✅ **#708** The dash-demo hazard wears a pulsing warning ring
+- ✅ **#709** A jet flame flickers behind the dashing demo gem
+- ✅ **#710** Zebra tint steadies the upgrade gallery rows
+- ✅ **#711** Pink sparks flank the Warden's enemy-gallery line
+- ✅ **#712** Heartbeat diamonds stud the low-HP danger frame
+- ✅ **#713** Records stat cards wear a hero-color spine
+- ✅ **#714** Records stat bars cap with a bright tip
+- ✅ **#715** Your most-played hero's runs bar wears a gold star
+- ✅ **#716** A live settings toggle's knob glows
+- ✅ **#717** Menu button medallions wear a spinning spark
+- ✅ **#718** The music volume thumb glows purple
+- ✅ **#719** The SFX volume thumb glows cyan
+- ✅ **#720** Grid slider thumbs catch a glint
+- ✅ **#721** Gems flank the shop footer line
+- ✅ **#722** Sparks flank the settings LIVE PREVIEW label
+- ✅ **#723** A gem spark spins in the HUD while the gem count pops
+- ✅ **#724** The boss bar's tip burns red under 25% HP
+- ✅ **#725** A gold rule underlines the menu title
+- ✅ **#726** Embers flank the SHATTERED shout
+- ✅ **#727** Gold sparks flank the victory rank line
+- ✅ **#728** Gold ticks counter-orbit the countdown numeral
+- ✅ **#729** A pink diamond heralds the Warden's wave banner
+- ✅ **#730** A spark trails the XP bar's tip
+- ✅ **#731** A wave spark marks the hero's best-wave line
+- ✅ **#732** The price-sort toggle sparkles while active
+- ✅ **#733** Sparks orbit a full rocket charge
+- ✅ **#734** Studs pin the pause RESUME button's corners
+- ✅ **#735** A gold rule underlines ELITE DOWN
+- ✅ **#736** A gold heart spins in the shell gem on boss waves
