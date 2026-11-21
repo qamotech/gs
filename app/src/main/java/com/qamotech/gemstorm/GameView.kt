@@ -50,7 +50,8 @@ class GameView(context: Context) : View(context) {
             CharDef("Swift", "⚡", 85f, 1.35f, 0.92f, 400, Color.rgb(250, 204, 21), "Fragile but blazing fast. Kite everything."),
             CharDef("Bulwark", "🛡️", 190f, 0.82f, 1.18f, 900, Color.rgb(251, 146, 60), "A walking fortress. Slow, hits like a truck."),
             CharDef("Pyro", "🔥", 100f, 1.10f, 1.05f, 1200, Color.rgb(249, 115, 22), "His dash leaves a burning trail."),
-            CharDef("Cryo", "❄️", 110f, 0.95f, 1.00f, 1200, Color.rgb(147, 197, 253), "A freezing aura slows nearby foes.")
+            CharDef("Cryo", "❄️", 110f, 0.95f, 1.00f, 1200, Color.rgb(147, 197, 253), "A freezing aura slows nearby foes."),
+            CharDef("💎N🎱 Turtle", "🐢", 130f, 1.02f, 1.02f, 0, Color.rgb(34, 197, 94), "A turtle with jets. Slow is smooth, smooth is fast. Free — a gift from 💎N🎱.")
         )
         val WEAPONS = listOf(
             WeaponDef("Gem Blaster", "🔫", 12f, 4.0f, 950f, 1, 0, 0, Color.rgb(34, 211, 238), "Reliable single shots."),
@@ -84,12 +85,13 @@ class GameView(context: Context) : View(context) {
     class Enemy(val type: Int, var x: Float, var y: Float, var hp: Float, var maxHp: Float,
                 val speed: Float, var radius: Float, var damage: Float, var xp: Int, var score: Int) {
         var slowT = 0f; var elite = false; var burnT = 0f; var spawnT = 0.32f; var frostAge = 0f
+        var ghostHp = maxHp // #432 damage-ghost bar starts full
         var flash = 0f; var shootT = 1.5f + Random.nextFloat() * 1.5f; var bladeT = 0f
         var wob = Random.nextFloat() * 6.28f; var chargeT = 0f; var vx = 0f; var vy = 0f
         var state = 0; var stateT = 0f; var dir = if (Random.nextBoolean()) 1f else -1f
     }
     class Proj(var x: Float, var y: Float, var vx: Float, var vy: Float, val dmg: Float,
-               var pierce: Int, val fromPlayer: Boolean, val radius: Float, val color: Int) { var life = 1.6f; var aoe = 0f }
+               var pierce: Int, val fromPlayer: Boolean, val radius: Float, val color: Int) { var life = 1.6f; var aoe = 0f; var rocket = false }
     class GemDrop(var x: Float, var y: Float, val value: Int) { var vx = 0f; var vy = 0f; var mag = false }
     class HeartDrop(var x: Float, var y: Float) { var vx = 0f; var vy = 0f; var mag = false }
     class Particle(var x: Float, var y: Float, var vx: Float, var vy: Float,
@@ -158,7 +160,9 @@ class GameView(context: Context) : View(context) {
     private var lastShootSfx = 0f; private var lastPickupSfx = 0f
     private var combo = 0; private var comboT = 0f; private var comboBest = 0
     private var lastAim = 0f; private var muzzleT = 0f
-    private var comboPop = 0f; private var killsPop = 0f; private var gemsPop = 0f
+    private var bossGhostHp = 0f // #487
+    private var playerGhostHp = 0f // #518
+    private var comboPop = 0f; private var killsPop = 0f; private var gemsPop = 0f; private var scorePop = 0f // #492
     private var lastKillsSeen = 0; private var lastGemsSeen = 0
     private val upgradeCounts = IntArray(24)
     private var bossIntroT = 0f
@@ -181,6 +185,8 @@ class GameView(context: Context) : View(context) {
     private var eliteBannerT = 0f; private var waveClearT = 0f
     private var waveClearBonus = 0; private var waveClearedNum = 0; private var waveTotal = 1
     private var dashCharges = 1; private var dashMaxCharges = 1; private var dashRechargeT = 0f
+    private var rocketCharges = 3; private var rocketMaxCharges = 3; private var rocketRechargeT = 0f; private val rocketCdMax = 2.2f
+    private var rocketReadyT = 0f // #481
     private var toastMsg = ""; private var toastT = 0f
     private var pendingConfirm = ""; private var confirmT = 0f
     private var teslaLvl = 0; private var meteorLvl = 0; private var poisonLvl = 0; private var thornLvl = 0
@@ -207,6 +213,7 @@ class GameView(context: Context) : View(context) {
     private var flashT = 0f; private var goldFlashT = 0f; private var saveSlowT = 0f; private var chromaT = 0f
     private var lastHurtAngle = 0f; private var lastHurtT = 0f
     private var heartBeatT = 0f
+    private var heartPopT = 0f // v2.4: the one animated pickup heart
     private var countT = 0f; private var countStage = 0
     private var lastHitSfx = 0f; private var lastSpawnSfx = 0f; private var lastPreviewT = 0f
     private var pickupChain = 0; private var pickupChainT = 0f
@@ -237,6 +244,7 @@ class GameView(context: Context) : View(context) {
     private var joyPointer = -1; private var joyOx = 0f; private var joyOy = 0f
     private var joyDx = 0f; private var joyDy = 0f
     private val dashBtnRect = RectF()
+    private val rocketBtnRect = RectF()
     private val pauseBtnRect = RectF()
 
     init {
@@ -244,6 +252,7 @@ class GameView(context: Context) : View(context) {
         isFocusableInTouchMode = true // #366 hardware keyboard input
         contentDescription = "GEMSTORM game canvas" 
         audio.playMusic(R.raw.music_menu)
+        if (!save.ownsChar(5)) save.unlockChar(5) // 💎N🎱 turtle: free for everyone — granted on first v2.3 launch
     }
 
     override fun onAttachedToWindow() { super.onAttachedToWindow(); requestFocus() }
@@ -314,6 +323,7 @@ class GameView(context: Context) : View(context) {
         if (daily) { dailyRng = Random(java.time.LocalDate.now().toEpochDay()); dailyDay = java.time.LocalDate.now().toEpochDay() } // #334 seed day kept for display + share code
         dashCd = 0f; dashT = 0f; invulnT = 0f; fireT = 0f
         dashMaxCharges = 1; dashCharges = 1; dashRechargeT = 0f
+        rocketMaxCharges = 3; rocketCharges = 3; rocketRechargeT = 0f // 🚀 full rack every run
         waveClearT = 0f; eliteBannerT = 0f; pendingConfirm = ""
         wave = 0; score = 0; kills = 0; gemsRun = 0; runTime = 0f
         save.runSnap = ""; save.runSnapWave = 0 // #301 a fresh run clears any saved snapshot
@@ -506,7 +516,9 @@ class GameView(context: Context) : View(context) {
         // #71/#89 spawn portal ring + swirl at the arena edge
         val cxp = sx.coerceIn(dp(16f), w - dp(16f)); val cyp = sy.coerceIn(dp(80f), h - dp(16f))
         rings.add(Ring(cxp, cyp, dp(8f), 0.4f, 0.4f, enemyColor(e.type)))
+        rings.add(Ring(cxp, cyp, dp(4f), 0.28f, 0.28f, Color.WHITE)) // #508 inner portal swirl ring
         sparks.add(Spark(cxp, cyp, 0.3f, enemyColor(e.type), dp(10f))); sparks.add(Spark(cxp + dp(10f), cyp - dp(6f), 0.3f, Color.WHITE, dp(7f))) // #223 portal sparks
+        if (e.elite) sparks.add(Spark(cxp, cyp, 0.4f, Color.rgb(250, 204, 21), dp(12f))) // #612 elite portals flare gold
         if (e.type == 6 && Random.nextFloat() < 0.7f) audio.sfx("warp", 0.85f + Random.nextFloat() * 0.3f) // #270 weaver warp blip
         if (time - lastSpawnSfx > 0.18f && Random.nextFloat() < 0.5f) { audio.sfx("spawn", 0.9f + Random.nextFloat() * 0.2f); lastSpawnSfx = time } // #296 spawn warning blip
         if (particles.size < 300) for (i in 0 until 5) {
@@ -528,10 +540,12 @@ class GameView(context: Context) : View(context) {
         bossStartT = runTime
         bossIntroT = 2f
         texts.add(FloatText(w / 2, h * 0.3f, "⚠ ABYSS WARDEN ⚠", 2.2f, Color.rgb(244, 114, 182), dp(26f)))
+        rings.add(Ring(e.x, e.y, dp(24f), 0.5f, 0.5f, Color.rgb(244, 114, 182))) // #614 the Warden's arrival rings out
         audio.playMusic(R.raw.music_boss) // #273 boss variant loop
     }
 
     private fun explodeProj(pr: Proj, dead: MutableList<Enemy>) { // #130 Meteor Staff AoE
+        if (pr.rocket) blooms.add(Bloom(pr.x, pr.y, 0.22f, dp(120f), Color.WHITE)) // #546 rocket impacts flash white-hot
         rings.add(Ring(pr.x, pr.y, dp(10f), 0.35f, 0.35f, Color.rgb(249, 115, 22)))
         burst(pr.x, pr.y, Color.rgb(249, 115, 22), 14, 360f)
         chromaT = max(chromaT, 0.15f); blooms.add(Bloom(pr.x, pr.y, 0.3f, dp(70f), Color.rgb(249, 115, 22))) // #230 + #245
@@ -584,6 +598,12 @@ class GameView(context: Context) : View(context) {
         if (spawnAnimT > 0) spawnAnimT -= dt
         if (joySpringT > 0) joySpringT -= dt
         if (dashReadyT > 0) dashReadyT -= dt
+        if (rocketReadyT > 0) rocketReadyT -= dt // #481
+        val bb2 = enemies.firstOrNull { it.type == 5 } // #487 boss damage ghost trails the real bar
+        if (bb2 != null) { if (bossGhostHp < bb2.hp) bossGhostHp = bb2.hp; if (bossGhostHp > bb2.hp) bossGhostHp = max(bb2.hp, bossGhostHp - bb2.maxHp * 0.12f * dt) } else bossGhostHp = 0f
+        if (playerGhostHp < hp) playerGhostHp = hp; if (playerGhostHp > hp) playerGhostHp = max(hp, playerGhostHp - maxHp * 0.10f * dt) // #518
+        if (waveClearT > 0 && particles.size < 350 && Random.nextFloat() < 0.55f) particles.add(Particle(Random.nextFloat() * w, -dp(8f), 0f, 130f, 1.4f, 1.4f, if (Random.nextBoolean()) Color.rgb(250, 204, 21) else Color.rgb(52, 211, 153), dp(2.6f))) // #493 victory sparkle rain
+        if (waveClearT > 0 && Random.nextFloat() < 0.10f) sparks.add(Spark(Random.nextFloat() * w * 0.7f, dp(30f) + Random.nextFloat() * dp(60f), 0.5f, Color.rgb(254, 240, 138), dp(9f))) // #552 shooting stars celebrate a cleared wave
         if (recoilT > 0) recoilT -= dt
         if (slowmoT > 0) slowmoT -= dt
         if (saveSlowT > 0) saveSlowT -= dt
@@ -605,6 +625,7 @@ class GameView(context: Context) : View(context) {
         if (comboPop > 0) comboPop -= dt * 3f
         if (killsPop > 0) killsPop -= dt * 3f
         if (gemsPop > 0) gemsPop -= dt * 3f
+        if (scorePop > 0) scorePop -= dt * 3f // #492
         if (bossIntroT > 0) bossIntroT -= dt
         if (bossBoomT > 0) { // #186 multi-stage boss explosion sequence
             val prevBoom = bossBoomT; bossBoomT -= dt
@@ -629,11 +650,16 @@ class GameView(context: Context) : View(context) {
         if (hurtFlash > 0) hurtFlash = max(0f, hurtFlash - dt * 2.2f)
         if (state == State.PLAYING && hp > 0 && hp / maxHp < 0.25f) { // #274 heartbeat layer under the battle music
             heartBeatT -= dt
+            if (heartPopT > 0) heartPopT -= dt
             if (heartBeatT <= 0f) { heartBeatT = 0.85f; audio.sfx("heartbeat"); pulseVib(longArrayOf(0, 55, 95, 40)) } // #287 heartbeat pattern
         }
         if (dashCharges < dashMaxCharges) {
             dashRechargeT -= dt
-            if (dashRechargeT <= 0) { dashCharges++; dashReadyT = 0.35f; if (dashCharges < dashMaxCharges) dashRechargeT = dashCdMax } // #183
+            if (dashRechargeT <= 0) { dashCharges++; dashReadyT = 0.35f; if (dashCharges < dashMaxCharges) dashRechargeT = dashCdMax; rings.add(Ring(px, py, dp(8f), 0.3f, 0.3f, Color.rgb(34, 211, 238))) } // #183 + #458 charge-ready ring
+        }
+        if (rocketCharges < rocketMaxCharges) { // 🚀 rocket rack recharges like the dash
+            rocketRechargeT -= dt
+            if (rocketRechargeT <= 0) { rocketCharges++; rocketReadyT = 0.35f; if (rocketCharges < rocketMaxCharges) rocketRechargeT = rocketCdMax } // #481
         }
         if (dashBufferT > 0) { // #385 buffered dash fires the moment a charge lands
             dashBufferT -= dt
@@ -670,6 +696,7 @@ class GameView(context: Context) : View(context) {
         val acc = 1f - exp(-dt * (if (dashT > 0) 30f else 14f)) // #387 acceleration curve (snappy in dash)
         pvx += (ix * spd - pvx) * acc; pvy += (iy * spd - pvy) * acc
         px = (px + pvx * dt).coerceIn(dp(20f), w - dp(20f))
+        if ((pvx * pvx + pvy * pvy) > 3600f && rings.size < 16 && Random.nextFloat() < 0.10f) rings.add(Ring(px, py + dp(15f), dp(3f), 0.5f, 0.5f, CHARS[save.selectedChar].color)) // #547 flipper ripples trail as you swim
         py = (py + pvy * dt).coerceIn(dp(90f), h - dp(20f))
         if (kbx != 0f || kby != 0f) { // #163 hurt knockback slide (decays fast)
             px = (px + kbx * dt).coerceIn(dp(20f), w - dp(20f))
@@ -699,6 +726,10 @@ class GameView(context: Context) : View(context) {
         if (hyp(joyDx, joyDy) < 0.1f) { stillT += dt; dodgeMeter = max(0f, dodgeMeter - dt * 0.5f) }
         else { stillT = 0f; focusReady = false; dodgeMeter = min(1f, dodgeMeter + dt * 0.5f) }
         if (stillT > 1.2f && !focusReady) { focusReady = true; audio.sfx("focus") } // #268 full-charge ping
+        if ((pvx != 0f || pvy != 0f) && particles.size < 340 && Random.nextFloat() < 0.5f) { // #428 engine trail sparks
+            val ba = atan2(pvy, pvx)
+            particles.add(Particle(px - cos(ba) * dp(20f) + Random.nextFloat() * 8 - 4, py - sin(ba) * dp(20f) + Random.nextFloat() * 8 - 4, -cos(ba) * 40f, -sin(ba) * 40f, 0.34f, 0.34f, CHARS[save.selectedChar].color, dp(2.6f)))
+        }
         if (stillT > 0.15f && particles.size < 330 && Random.nextFloat() < 0.55f) { // #195 gathering particles spiral in
             val ga = Random.nextFloat() * 6.283f
             particles.add(Particle(px + cos(ga) * dp(44f), py + sin(ga) * dp(44f), -cos(ga) * 215f, -sin(ga) * 215f, 0.22f, 0.22f, if (focusReady) Color.rgb(254, 240, 138) else Color.rgb(165, 243, 252), dp(2.6f)))
@@ -709,7 +740,7 @@ class GameView(context: Context) : View(context) {
             countT -= dt
             val st = ((countT / 0.5f) + 0.999f).toInt()
             if (st in 1..3 && st != countStage) { countStage = st; audio.sfx("count") }
-            if (countT <= 0f) audio.sfx("count", 1.5f) // #295 final beep at a higher pitch
+            if (countT <= 0f) { audio.sfx("count", 1.5f); texts.add(FloatText(w / 2, h * 0.40f, "GO!", 0.7f, Color.rgb(250, 204, 21), dp(26f))); rings.add(Ring(w / 2, h * 0.40f - dp(10f), dp(12f), 0.45f, 0.45f, Color.rgb(250, 204, 21))) } // #295 final beep, #564 GO! flash, #663 GO! burst ring
         }
         if (toSpawn > 0) {
             if (countT <= 0f) { // spawns held while the countdown runs
@@ -832,6 +863,7 @@ class GameView(context: Context) : View(context) {
                 blooms.add(Bloom(m.x, m.y, 0.35f, dp(95f), Color.rgb(249, 115, 22))) // #245 light bloom
                 for (i in 0 until 8) { val a = i * 0.785f; if (particles.size < 360) particles.add(Particle(m.x + cos(a) * dp(20f), m.y + sin(a) * dp(20f), cos(a) * 120f, sin(a) * 120f, 0.6f, 0.6f, Color.rgb(168, 162, 158), dp(4.5f))) }
                 decals.add(Decal(m.x, m.y, dp(52f), 6f))
+                decals.add(Decal(m.x, m.y, dp(26f), 11f)) // #451 burnt core lingers
                 audio.sfx("explosion", 0.9f, distVol(m.x, m.y)) // #281
                 val mdmg = 42f * dmgMul * (1f + 0.3f * (meteorLvl - 1))
                 for (e2 in enemies) if (e2.hp > 0 && hyp(e2.x - m.x, e2.y - m.y) < dp(72f) + e2.radius * 0.5f) damageEnemy(e2, mdmg, dead)
@@ -840,12 +872,21 @@ class GameView(context: Context) : View(context) {
         meteors.removeAll(deadMeteors)
         for (e in enemies) {
             if (e.flash > 0) e.flash -= dt
+            if (e.ghostHp > e.hp) e.ghostHp = max(e.hp, e.ghostHp - e.maxHp * 0.3f * dt) // #432 ghost drains toward real HP
             if (e.spawnT > 0) e.spawnT -= dt
             if (e.slowT > 0) e.frostAge += dt else e.frostAge = 0f
             if (e.type == 7 && e.state == 2 && ghosts.size < 24 && Random.nextFloat() < 0.7f) ghosts.add(Ghost(e.x, e.y, 0.25f, enemyColor(7))) // #235 lancer charge afterimage
+            if (e.type == 7 && e.state == 2 && particles.size < 360 && Random.nextFloat() < 0.5f) particles.add(Particle(e.x, e.y + e.radius * 0.6f, Random.nextFloat() * 30 - 15, 26f, 0.4f, 0.4f, Color.rgb(168, 162, 158), dp(3.6f))) // #461 charge dust
+            if (e.type == 2 && particles.size < 360 && Random.nextFloat() < 0.30f) particles.add(Particle(e.x + (Random.nextFloat() - 0.5f) * e.radius, e.y + e.radius * 0.7f, (Random.nextFloat() - 0.5f) * 24f, 18f, 0.45f, 0.45f, Color.rgb(168, 162, 158), dp(4.2f))) // #540 brute stomp dust
             if (e.slowT > 0 && particles.size < 340 && Random.nextFloat() < 0.1f) particles.add(Particle(e.x + Random.nextFloat() * 14 - 7, e.y + e.radius * 0.5f, 0f, 34f, 0.5f, 0.5f, Color.rgb(207, 250, 254), dp(5f))) // #237 frost mist
+            if (e.slowT > 0 && particles.size < 340 && Random.nextFloat() < 0.05f) particles.add(Particle(e.x, e.y - e.radius, 0f, -22f, 0.7f, 0.7f, Color.rgb(224, 242, 254), dp(3.4f))) // #676 slowed foes breathe frost upward
             if (e.slowT > 0) e.slowT -= dt
             if (e.burnT > 0) e.burnT -= dt
+            if (e.burnT > 0 && particles.size < 340 && Random.nextFloat() < 0.22f) particles.add(Particle(e.x + Random.nextFloat() * 12 - 6, e.y - e.radius * 0.4f, 0f, -46f, 0.4f, 0.4f, Color.rgb(251, 146, 60), dp(2.6f))) // #511 burning foes shed embers
+            if (e.type == 11 && particles.size < 340 && Random.nextFloat() < 0.12f) particles.add(Particle(e.x, e.y + e.radius * 0.5f, 0f, 12f, 0.5f, 0.5f, Color.rgb(250, 204, 21), dp(2.4f))) // #512 gnome gold dust trail
+            if (e.type == 11 && hyp(px - e.x, py - e.y) < dp(130f) && particles.size < 340 && Random.nextFloat() < 0.2f) particles.add(Particle(e.x, e.y - e.radius * 0.6f, (Random.nextFloat() - 0.5f) * 30f, -40f, 0.35f, 0.35f, Color.rgb(147, 197, 253), dp(2f))) // #573 gnome panic sweat when you close in
+            if (e.type == 6 && particles.size < 340 && Random.nextFloat() < 0.10f) particles.add(Particle(e.x, e.y + e.radius * 0.5f, 0f, 10f, 0.55f, 0.55f, Color.rgb(226, 232, 240), dp(2.2f))) // #537 weaver silk dots
+            if (e.type == 1 && particles.size < 340 && Random.nextFloat() < 0.08f) particles.add(Particle(e.x, e.y, 0f, 0f, 0.4f, 0.4f, enemyColor(1), dp(2f))) // #577 dart ribbon dots
             if (e.bladeT > 0) e.bladeT -= dt
             e.wob += dt * 3f
             val dx = px - e.x; val dy = py - e.y
@@ -900,6 +941,7 @@ class GameView(context: Context) : View(context) {
                         pendingSpawns.add(Enemy(mt, e.x + (i - 1.5f) * dp(38f), e.y + dp(30f), mhp, mhp,
                             if (mt == 0) 168f else 265f, if (mt == 0) dp(17f) else dp(13f), 12f, 1, 20))
                     }
+                    waveTotal += 4 // v2.3 boss minions count toward the wave total
                     texts.add(FloatText(e.x, e.y - e.radius - dp(14f), "👹 MINIONS, RISE!", 1f, Color.rgb(244, 114, 182), dp(16f)))
                 }
                 if (!bossBurst33 && frac <= 0.33f) { bossBurst33 = true; hitstopT = max(hitstopT, 0.09f); radialBurst(e, 20, 330f); audio.sfx("roar", 0.8f); texts.add(FloatText(e.x, e.y - e.radius - dp(14f), "💥 DESPERATE SURGE!", 1f, Color.rgb(248, 113, 113), dp(16f))) }
@@ -941,6 +983,13 @@ class GameView(context: Context) : View(context) {
                 hurtPlayer(e.damage)
                 if (thornLvl > 0) damageEnemy(e, e.damage * 0.3f * thornLvl, dead) // #104 Thorn Aura
             }
+            // v2.3 WAVE-INTEGRITY LEASH: the gnome used to flee clean off the arena and
+            // strand the wave forever (Nathan's Endless Wave 12). The gnome is now
+            // penned inside the arena — catchable, killable, never a soft-lock — and
+            // every other enemy is leashed to 70dp outside so knockbacks and lancer
+            // charges can never lose one off-screen either.
+            if (e.type == 11) { val ox = e.x; val oy = e.y; e.x = e.x.coerceIn(e.radius, w - e.radius); e.y = e.y.coerceIn(e.radius, h - e.radius); if ((ox != e.x || oy != e.y) && Random.nextFloat() < 0.22f && sparks.size < 40) sparks.add(Spark(e.x, e.y - e.radius - dp(4f), 0.3f, Color.rgb(250, 204, 21), dp(7f))) } // #490 penned gnome bonks the wall
+            else { e.x = e.x.coerceIn(-dp(70f), w + dp(70f)); e.y = e.y.coerceIn(-dp(70f), h + dp(70f)) }
         }
 
         if (pendingSpawns.isNotEmpty()) { enemies.addAll(pendingSpawns); pendingSpawns.clear() }
@@ -949,9 +998,22 @@ class GameView(context: Context) : View(context) {
         val deadProj = mutableListOf<Proj>()
         for (pr in projs) {
             pr.life -= dt
+            if (pr.rocket) { // 🚀 rockets home in and breathe smoke
+                val rt = enemies.filter { it.hp > 0 }.minByOrNull { hyp(it.x - pr.x, it.y - pr.y) }
+                if (rt != null) {
+                    val cur = atan2(pr.vy, pr.vx); val want = atan2(rt.y - pr.y, rt.x - pr.x)
+                    var dd = want - cur; while (dd > 3.14159f) dd -= 6.28318f; while (dd < -3.14159f) dd += 6.28318f
+                    val turn = dd.coerceIn(-4.4f * dt, 4.4f * dt); val spd = hyp(pr.vx, pr.vy)
+                    pr.vx = cos(cur + turn) * spd; pr.vy = sin(cur + turn) * spd
+                }
+                if (particles.size < 380) particles.add(Particle(pr.x, pr.y, 0f, 0f, 0.3f, 0.3f, Color.rgb(148, 163, 184), dp(3.6f)))
+                if (particles.size < 380 && Random.nextFloat() < 0.5f) particles.add(Particle(pr.x, pr.y, (Random.nextFloat() - 0.5f) * 60f, (Random.nextFloat() - 0.5f) * 60f, 0.22f, 0.22f, Color.rgb(251, 146, 60), dp(2f))) // #498 rocket spark trail
+            }
             pr.x += pr.vx * dt; pr.y += pr.vy * dt
             if (pr.fromPlayer && particles.size < 380 && Random.nextFloat() < 0.65f)
                 particles.add(Particle(pr.x, pr.y, 0f, 0f, 0.16f, 0.16f, pr.color, dp(2.6f)))
+            if (!pr.fromPlayer && particles.size < 380 && Random.nextFloat() < 0.30f) // #453 hostile shots shed faint embers
+                particles.add(Particle(pr.x, pr.y, 0f, 0f, 0.22f, 0.22f, pr.color, dp(2f)))
             if (pr.life <= 0 || pr.x < -80 || pr.x > w + 80 || pr.y < -80 || pr.y > h + 80) {
                 if (pr.fromPlayer && pr.aoe > 0f) explodeProj(pr, dead) // #130 lobbed orb bursts at end of arc
                 deadProj.add(pr); continue
@@ -977,18 +1039,29 @@ class GameView(context: Context) : View(context) {
         projs.removeAll(deadProj)
 
         // --- deaths ---
+        // Sweep: pool DoT (updateFx) drains hp outside damageEnemy, so a
+        // pool-killed enemy can sit at hp <= 0 unregistered. Left alone it
+        // becomes an unshootable zombie — bullets skip hp <= 0, yet it
+        // still draws, still moves, and the wave can never clear.
+        for (e in enemies) if (e.hp <= 0 && !dead.contains(e)) dead.add(e)
         for (e in dead) {
             if (!enemies.remove(e)) continue
             kills++
             if (kills == 50 || kills == 100 || kills == 200 || kills == 350 || kills == 500) { // #147 streak milestones
                 texts.add(FloatText(px, py - dp(64f), "🔥 $kills KILL STREAK! +25💎", 1.1f, Color.rgb(251, 146, 60), dp(16f)))
+                if (rings.size < 16) rings.add(Ring(px, py, dp(14f), 0.3f, 0.3f, Color.rgb(251, 146, 60))) // #579 streaks pop an orange ring
+                rings.add(Ring(px, py, dp(14f), 0.5f, 0.5f, Color.rgb(251, 146, 60))) // #457 streak ring burst
                 for (i in 0 until 5) gemDrops.add(GemDrop(px + Random.nextFloat() * 60 - 30, py + Random.nextFloat() * 60 - 30, 5))
                 audio.sfx("levelup")
             }
             combo++; comboT = 2.5f
+            if (combo % 25 == 0) texts.add(FloatText(px, py - dp(76f), "🔥 RAMPAGE ×$combo", 1.0f, Color.rgb(248, 113, 113), dp(17f))) // #499 combo milestone callout
             if (combo > comboBest) comboBest = combo
             val mult = 1 + min(combo / 10, 4)
+            val scBefore = score // #589 thousand milestones get a shout
             score += e.score * mult
+            if (score / 1000 > scBefore / 1000) texts.add(FloatText(px, py - dp(92f), "⭐ ${(score / 1000) * 1000}!", 1.0f, Color.rgb(250, 204, 21), dp(16f)))
+            if (e.score >= 60) scorePop = 0.35f // #492 big kills pop the score
             if (save.dmgNumbers) texts.add(FloatText(e.x, e.y, "+${e.score * mult}", 0.6f,
                 when { mult >= 4 -> Color.rgb(250, 204, 21); mult >= 2 -> Color.rgb(251, 146, 60); else -> Color.rgb(165, 243, 252) }, dp(12.5f)))
             if (combo % 10 == 0) { audio.sfx("sting", 0.85f + min(5, combo / 10) * 0.12f); comboPop = 1f; vibrate(30); shake = max(shake, 3.5f); rings.add(Ring(px, py, dp(14f), 0.4f, 0.4f, Color.rgb(251, 146, 60))); texts.add(FloatText(px, py - dp(52f), "🔥 $combo COMBO ×$mult!", 0.9f, Color.rgb(251, 146, 60), dp(17f))) } // #171
@@ -997,6 +1070,12 @@ class GameView(context: Context) : View(context) {
                 if (Random.nextFloat() < 0.3f) texts.add(FloatText(px, py - dp(34f), "+${lifesteal}", 0.55f, Color.rgb(248, 113, 113), dp(12f)))
             }
             burst(e.x, e.y, enemyColor(e.type), if (e.type == 5) 70 else 16, 380f)
+            if (rings.size < 20) rings.add(Ring(e.x, e.y, dp(5f), 0.18f, 0.18f, Color.WHITE)) // #514 white core flash on every kill
+            if (rings.size < 14) rings.add(Ring(e.x, e.y, e.radius * 0.7f, 0.32f, 0.32f, enemyColor(e.type))) // #444 kill shockwave
+            if (e.elite) for (i in 0 until 6) { if (particles.size > 360) break // #454 elite gold fountain
+                val a = -1.57f + (Random.nextFloat() - 0.5f) * 1.6f; val s = 200f + Random.nextFloat() * 220f
+                particles.add(Particle(e.x, e.y, cos(a) * s, sin(a) * s, 0.7f, 0.7f, Color.rgb(250, 204, 21), dp(3.4f), 1, Random.nextFloat() * 6.28f)) }
+            if (e.frostAge > 1.2f) burst(e.x, e.y, Color.rgb(165, 243, 252), 10, 300f) // #471 frozen kills shatter icy
             if (e.type == 2 || e.type == 10) shake = max(shake, 4.5f) // #201 brute death shake
             if (e.slowT > 0 && particles.size < 360) for (i in 0 until 6) { // #207 frost shards on chilled death
                 val a = Random.nextFloat() * 6.283f; val s = 130f + Random.nextFloat() * 200f
@@ -1045,6 +1124,7 @@ class GameView(context: Context) : View(context) {
                 if (save.bossKills == 1) { save.heroDiscount = true; toast("🏷️ Boss bonus: 25% OFF your next hero!") }
             }
             if (e.elite) { eliteBannerT = 1.4f; save.elitesSlain++; rerollTokens++; texts.add(FloatText(e.x, e.y - dp(24f), "+1 🔄 REROLL", 0.8f, Color.rgb(165, 243, 252), dp(12f))) } // #139
+            if (e.elite) texts.add(FloatText(e.x, e.y - dp(44f), "👑 ELITE DOWN", 0.9f, Color.rgb(250, 204, 21), dp(13f))) // #550 elites get a crown callout
             if (e.elite) { // #198 spiral implosion: ring shards converge with a swirl
                 for (i in 0 until 10) { val a = i * 0.628f; val rr = dp(54f)
                     particles.add(Particle(e.x + cos(a) * rr, e.y + sin(a) * rr, -cos(a) * 250f - sin(a) * 130f, -sin(a) * 250f + cos(a) * 130f, 0.38f, 0.38f, Color.rgb(250, 204, 21), dp(3.8f), 1, a)) }
@@ -1059,19 +1139,24 @@ class GameView(context: Context) : View(context) {
             if (e.type == 3) for (i in 0 until 2) { // splitter births minis
                 val mini = Enemy(4, e.x + Random.nextFloat() * 30 - 15, e.y + Random.nextFloat() * 30 - 15,
                     9f * (1f + (wave - 1) * 0.24f), 9f * (1f + (wave - 1) * 0.24f), 235f, dp(10f), 6f, 1, 8)
-                enemies.add(mini)
+                enemies.add(mini); waveTotal++ // v2.3 spawned mid-wave foes count toward the wave total
+                if (rings.size < 14) rings.add(Ring(mini.x, mini.y, dp(6f), 0.25f, 0.25f, Color.rgb(74, 222, 128))) // #467 birth pop ring
+                sparks.add(Spark(mini.x, mini.y, 0.25f, Color.rgb(74, 222, 128), dp(6f))) // #639 splitter births spark
             }
             if (e.type == 9) for (i in 0 until 3) { // #116 Necroshard births 3 darts
                 audio.sfx("necropop", 1f - i * 0.12f) // #271 triple pop
                 val mini = Enemy(4, e.x + Random.nextFloat() * 36 - 18, e.y + Random.nextFloat() * 36 - 18,
                     9f * (1f + (wave - 1) * 0.24f), 9f * (1f + (wave - 1) * 0.24f), 250f, dp(10f), 6f, 1, 8)
-                enemies.add(mini)
+                enemies.add(mini); waveTotal++ // v2.3 spawned mid-wave foes count toward the wave total
+                if (rings.size < 14) rings.add(Ring(mini.x, mini.y, dp(7f), 0.3f, 0.3f, Color.rgb(232, 121, 249))) // #513 necro births ring fuchsia
+                sparks.add(Spark(mini.x, mini.y - dp(4f), 0.3f, Color.rgb(232, 121, 249), dp(7f))) // #640 necro births spark fuchsia
             }
             if (poisonLvl > 0 && Random.nextFloat() < 0.10f + 0.08f * poisonLvl) { // #103 Poison Vials
                 pools.add(PoisonPool(e.x, e.y, dp(38f), 3.5f)); if (Random.nextFloat() < 0.6f) audio.sfx("poison", 0.9f + Random.nextFloat() * 0.25f) // #253
             }
             if (e.type == 11) { // #118 Gnome looted: gem shower
                 texts.add(FloatText(e.x, e.y - dp(20f), "💰 GNOME LOOTED! +60💎", 1.2f, Color.rgb(250, 204, 21), dp(17f)))
+                for (k in 0 until 3) sparks.add(Spark(e.x + (k - 1) * dp(9f), e.y - dp(6f), 0.35f, Color.rgb(250, 204, 21), dp(8f))) // #638 the loot bursts coin-sparks
                 audio.sfx("gnome") // #272 gnome laugh
                 for (i in 0 until 12) {
                     val g = GemDrop(e.x + Random.nextFloat() * 70 - 35, e.y + Random.nextFloat() * 70 - 35, 5)
@@ -1079,13 +1164,12 @@ class GameView(context: Context) : View(context) {
                     gemDrops.add(g)
                 }
             }
-            // 💚 heart drops: brutes/bosses/elites are generous
-            val heartChance = when { e.type == 5 -> 1f; e.elite -> 0.5f; e.type == 2 -> 0.3f; else -> 0.04f }
-            if (Random.nextFloat() < heartChance) {
+            // ❤️ heart drops (v2.3.1: rare treats, max 2 on the field, boss gives exactly one)
+            val heartChance = when { e.type == 5 -> 1f; e.elite -> 0.18f; e.type == 2 -> 0.10f; else -> 0.012f }
+            if (Random.nextFloat() < heartChance && hearts.size < 2) {
                 val hd = HeartDrop(e.x, e.y)
                 hd.vx = Random.nextFloat() * 140 - 70; hd.vy = Random.nextFloat() * 140 - 70
                 hearts.add(hd)
-                if (e.type == 5) { val hd2 = HeartDrop(e.x + 30, e.y + 20); hearts.add(hd2) }
             }
             // gem drops
             var remaining = (e.xp * (if (mutator == 1) 2f else 1f) * (if (save.hardMode) 1.5f else 1f)).toInt() // #119 + #149 hard loot
@@ -1103,6 +1187,7 @@ class GameView(context: Context) : View(context) {
         for (g in gemDrops) {
             val dx = px - g.x; val dy = py - g.y; val d = hyp(dx, dy)
             if (d < magnetR || vacuumT > 0) g.mag = true
+            if (g.mag && sparks.size < 40 && Random.nextFloat() < 0.16f) sparks.add(Spark(g.x, g.y, 0.22f, Color.rgb(167, 243, 208), dp(6f))) // #485 magnet shimmer
             if (g.mag && d > 1f) {
                 val pull = if (vacuumT > 0) 1700f else 780f // #135 vacuum pull
                 g.x += dx / d * pull * dt; g.y += dy / d * pull * dt
@@ -1112,6 +1197,7 @@ class GameView(context: Context) : View(context) {
             if (d < dp(26f)) {
                 if (rings.size < 12) rings.add(Ring(px, py, dp(6f), 0.25f, 0.25f, Color.rgb(52, 211, 153)))
                 if (flyGems.size < 24) flyGems.add(FlyGem(g.x, g.y, (g.x + w - dp(96f)) / 2, min(g.y, dp(50f)) - dp(110f), w - dp(96f), dp(50f), Color.rgb(52, 211, 153))) // #167
+                if (sparks.size < 40) sparks.add(Spark(g.x, g.y, 0.28f, Color.rgb(167, 243, 208), dp(9f))) // #450 pickup sparkle
                 gotGems.add(g)
                 gemsRun += g.value
                 gainXp(g.value)
@@ -1132,12 +1218,12 @@ class GameView(context: Context) : View(context) {
                 gotHearts.add(hd)
                 save.heartsCollected++
                 hp = min(maxHp, hp + 15f)
-                texts.add(FloatText(px, py - dp(40f), "+15 HP 💚", 0.8f, Color.rgb(74, 222, 128), dp(15f)))
+                texts.add(FloatText(px, py - dp(40f), "+15 HP", 0.8f, Color.rgb(248, 113, 113), dp(15f))) // v2.4: no text hearts — the animated heart below says it
+                heartPopT = 0.9f
                 audio.sfx("heart") // #266 warm chime
-                burst(px, py, Color.rgb(74, 222, 128), 10, 260f)
-                rings.add(Ring(px, py, dp(8f), 0.5f, 0.5f, Color.rgb(74, 222, 128))) // #168 expanding ring
-                for (i in 0 until 4) { val sa = i * 1.571f + 0.4f; sparks.add(Spark(px + cos(sa) * dp(22f), py + sin(sa) * dp(22f), 0.3f, Color.rgb(74, 222, 128), dp(8f))) } // #215 heal sparkles
-                texts.add(FloatText(px, py - dp(58f), "💚", 0.9f, Color.WHITE, dp(18f))) // #168 rising heart
+                burst(px, py, Color.rgb(239, 68, 68), 10, 260f)
+                rings.add(Ring(px, py, dp(8f), 0.5f, 0.5f, Color.rgb(239, 68, 68))) // #168 expanding ring
+                for (i in 0 until 4) { val sa = i * 1.571f + 0.4f; sparks.add(Spark(px + cos(sa) * dp(22f), py + sin(sa) * dp(22f), 0.3f, Color.rgb(252, 165, 165), dp(8f))) } // #215 heal sparkles
             }
         }
         hearts.removeAll(gotHearts)
@@ -1158,14 +1244,17 @@ class GameView(context: Context) : View(context) {
             if (da < 1.05f) {
                 dmg *= 0.3f
                 if (Random.nextFloat() < 0.4f) texts.add(FloatText(e.x, e.y - e.radius - dp(8f), "🛡️ BLOCKED", 0.5f, Color.rgb(148, 163, 184), dp(11f)))
+                sparks.add(Spark(e.x, e.y, 0.22f, Color.rgb(203, 213, 225), dp(8f))) // #560 armor blocks clang sparks
             }
         }
         e.hp -= dmg
         save.totalDamage += dmg.toLong() // #321 lifetime damage dealt
         e.flash = 0.06f // #162 hit flash 60ms
+        if (particles.size < 370 && Random.nextFloat() < 0.35f) particles.add(Particle(e.x, e.y, (Random.nextFloat() - 0.5f) * 200f, (Random.nextFloat() - 0.5f) * 200f, 0.22f, 0.22f, Color.WHITE, dp(2f))) // #534 ordinary hits spark too
         if (e.hp > 0 && time - lastHitSfx > 0.05f) { audio.sfx("hit", 0.65f + 0.45f * (e.hp / e.maxHp).coerceIn(0f, 1f)); lastHitSfx = time } // #280 hit pitch drops as HP drops
         if (crit) { sparks.add(Spark(e.x, e.y, 0.3f, Color.rgb(250, 204, 21), dp(13f))); sparks.add(Spark(e.x, e.y, 0.38f, Color.WHITE, dp(19f))); if (rings.size < 14) rings.add(Ring(e.x, e.y, dp(8f), 0.3f, 0.3f, Color.rgb(250, 204, 21))); if (save.dmgNumbers) texts.add(FloatText(e.x, e.y - e.radius, "💥 CRIT ${dmg.toInt()}", 0.65f, Color.rgb(250, 204, 21), dp(19f)).also { it.spin = true }) } // #173 spin-in
-        else if (save.dmgNumbers) texts.add(FloatText(e.x + Random.nextFloat() * 16 - 8, e.y - e.radius, "${dmg.toInt()}", 0.45f, Color.rgb(226, 232, 240), dp(11.5f)))
+        if (crit && particles.size < 370) for (k in 0 until 3) particles.add(Particle(e.x, e.y, (Random.nextFloat() - 0.5f) * 260f, (Random.nextFloat() - 0.5f) * 260f, 0.3f, 0.3f, Color.rgb(250, 204, 21), dp(2.6f))) // #533 crits shed gold sparks
+        else if (save.dmgNumbers) texts.add(FloatText(e.x + Random.nextFloat() * 16 - 8, e.y - e.radius, "${dmg.toInt()}", 0.45f, if (dmg >= 40f) Color.rgb(253, 224, 71) else Color.rgb(226, 232, 240), if (dmg >= 40f) dp(14f) else dp(11.5f))) // #559 heavy hits read gold and bigger
         val chainLv = teslaLvl + if (save.selectedWeapon == 4) 1 else 0 // #101 coil + #129 Tesla Arc
         if (chainLv > 0 && !noChain && raw > 0.5f) { // chain lightning
             val targets = enemies.filter { it !== e && it.hp > 0 && hyp(it.x - e.x, it.y - e.y) < dp(160f) }
@@ -1174,6 +1263,7 @@ class GameView(context: Context) : View(context) {
                 bolts.add(Bolt(e.x, e.y, t.x, t.y, 0.12f))
                 if (Random.nextFloat() < 0.3f) bolts.add(Bolt(t.x, t.y, t.x + Random.nextFloat() * 70 - 35, t.y + Random.nextFloat() * 70 - 35, 0.08f)) // #209 ambient arc
                 t.hp -= raw * 0.4f; t.flash = 0.06f // #162
+                sparks.add(Spark(t.x, t.y, 0.25f, Color.rgb(253, 224, 71), dp(9f))) // #561 chain hits crackle
                 if (t.hp <= 0 && !dead.contains(t)) dead.add(t)
             }
             audio.sfx("zap", 0.95f + Random.nextFloat() * 0.15f) // #251 tesla zap
@@ -1185,6 +1275,7 @@ class GameView(context: Context) : View(context) {
     private fun hurtPlayer(raw: Float) {
         if (save.selectedChar == 1 && dodgeMeter > 0.2f && Random.nextFloat() < 0.05f + 0.25f * dodgeMeter) { // #138 Swift dodge
             texts.add(FloatText(px, py - dp(34f), "💨 DODGED!", 0.6f, Color.rgb(250, 204, 21), dp(14f)))
+            if (rings.size < 12) rings.add(Ring(px, py, dp(18f), 0.28f, 0.28f, Color.rgb(250, 204, 21))) // #580 a dodge pops a gold ring
             invulnT = max(invulnT, 0.25f); audio.sfx("dash", 1.2f); return
         }
         var dmg = max(1f, raw - armor)
@@ -1274,9 +1365,29 @@ class GameView(context: Context) : View(context) {
         dashT = 0.16f
         if (hyp(joyDx, joyDy) > 0.1f) { dashDx = joyDx; dashDy = joyDy } else { dashDx = cos(lastAim); dashDy = sin(lastAim) } // #164
         rings.add(Ring(px, py, dp(10f), 0.32f, 0.32f, CHARS[save.selectedChar].color))
+        rings.add(Ring(px - dashDx * dp(14f), py - dashDy * dp(14f), dp(6f), 0.26f, 0.26f, Color.rgb(165, 243, 252))) // #505 flipper bubble ring trails the dash
+        burst(px, py, CHARS[save.selectedChar].color, 8, 250f) // #495 dash-start spark burst
         invulnT = max(invulnT, 0.22f)
         audio.sfx("dash")
         vibrate(20)
+    }
+
+    private fun doRocket() { // 🚀 secondary weapon: homing rocket, big AoE
+        if (state != State.PLAYING) return
+        if (rocketCharges <= 0) { vibrate(8); return }
+        rocketCharges--
+        if (rocketRechargeT <= 0f) rocketRechargeT = rocketCdMax
+        val wp = WEAPONS[save.selectedWeapon]
+        val tgt = enemies.minByOrNull { hyp(it.x - px, it.y - py) }
+        val a = if (tgt != null) atan2(tgt.y - py, tgt.x - px) else lastAim
+        val rp = Proj(px + cos(a) * dp(22f), py + sin(a) * dp(22f), cos(a) * 560f, sin(a) * 560f,
+            wp.dmg * dmgMul * 2.6f, 0, true, dp(8f), Color.rgb(249, 115, 22))
+        rp.aoe = dp(80f); rp.life = 2.4f; rp.rocket = true
+        projs.add(rp)
+        rings.add(Ring(px, py, dp(12f), 0.3f, 0.3f, Color.rgb(249, 115, 22)))
+        burst(px - cos(a) * dp(18f), py - sin(a) * dp(18f), Color.rgb(148, 163, 184), 5, 160f) // backblast
+        audio.sfx("whoosh", 0.8f)
+        vibrate(25)
     }
 
     private fun coinBurst() { // #174 purchase coins fly to the gem counter
@@ -1320,22 +1431,23 @@ class GameView(context: Context) : View(context) {
         if (state == State.PLAYING) {
             for (pl in pools) {
                 for (e in enemies) {
-                    if (e.hp > 0 && hyp(e.x - pl.x, e.y - pl.y) < pl.r + e.radius * 0.5f) {
+                    // Pool DoT drains hp directly; the death sweep in
+                    // updateCombat registers the kill (damageEnemy()
+                    // refuses hp <= 0, so it could never do it from here).
+                    if (e.hp > 0 && hyp(e.x - pl.x, e.y - pl.y) < pl.r + e.radius * 0.5f)
                         e.hp -= 9f * dt
-                        if (e.hp <= 0) { val dl = mutableListOf<Enemy>(); damageEnemy(e, 0.01f, dl, noChain = true) }
-                    }
                 }
             }
         }
         for (fp in firePools) fp.life -= dt
+        if (state == State.PLAYING) for (fp in firePools) if (particles.size < 350 && Random.nextFloat() < 0.10f) particles.add(Particle(fp.x + (Random.nextFloat() - 0.5f) * fp.r, fp.y, 0f, -34f, 0.5f, 0.5f, Color.rgb(249, 115, 22), dp(2.2f))) // #600 fire pools shed rising embers
         firePools.removeAll { it.life <= 0 }
         if (state == State.PLAYING) { // #127 fire pools burn + set ember tint
             for (fp in firePools) {
                 for (e in enemies) {
                     if (e.hp > 0 && hyp(e.x - fp.x, e.y - fp.y) < fp.r + e.radius * 0.5f) {
                         e.burnT = 0.6f
-                        e.hp -= 16f * dt
-                        if (e.hp <= 0) { val dl = mutableListOf<Enemy>(); damageEnemy(e, 0.01f, dl, noChain = true) }
+                        e.hp -= 16f * dt // death registered by the updateCombat sweep
                     }
                 }
             }
@@ -1418,6 +1530,7 @@ class GameView(context: Context) : View(context) {
                         joyPointer = -1; joyDx = 0f; joyDy = 0f; pauseGame()
                     } else when {
                         pauseBtnRect.contains(x, y) -> { if (save.pauseGuard) { pauseHoldPid = pid; pauseHoldT = time } else pauseGame() } // #377 hold-to-pause guard
+                        rocketBtnRect.contains(x, y) -> doRocket()
                         dashBtnRect.contains(x, y) -> doDash()
                         x < zoneW && joyPointer == -1 -> {
                             if (time - lastJoyTapT < 0.32f && hyp(x - lastJoyTapX, y - lastJoyTapY) < dp(90f)) doDash() // #354 double-tap dash
@@ -1795,6 +1908,8 @@ class GameView(context: Context) : View(context) {
         val r2 = if (sc == 1f) rect else RectF(rect.centerX() - rect.width() * sc / 2, rect.centerY() - rect.height() * sc / 2, rect.centerX() + rect.width() * sc / 2, rect.centerY() + rect.height() * sc / 2)
         if (state == State.MENU) roundRect(c, RectF(r2.left - dp(5f), r2.top - dp(5f), r2.right + dp(5f), r2.bottom + dp(5f)), dp(17f), fill, (30 + 22 * sin(time * 2.2f + r2.top * 0.013f)).toInt().coerceIn(8, 52)) // #238 idle glow pulse
         roundRect(c, r2, dp(14f), fill)
+        val shx2 = ((time * 0.24f + r2.top * 0.0011f) % 1.6f - 0.3f) // #653 a sheen sweeps every button
+        if (shx2 in 0.06f..0.94f) { p.color = Color.WHITE; p.alpha = 15; c.drawRect(r2.left + dp(12f) + (r2.width() - dp(31f)) * shx2, r2.top + dp(3f), r2.left + dp(19f) + (r2.width() - dp(31f)) * shx2, r2.top + r2.height() * 0.45f, p); p.alpha = 255 }
         p.color = Color.WHITE; p.alpha = 20
         c.drawRoundRect(RectF(r2.left + dp(3f), r2.top + dp(3f), r2.right - dp(3f), r2.top + r2.height() * 0.45f), dp(11f), dp(11f), p)
         p.alpha = 255
@@ -1815,6 +1930,7 @@ class GameView(context: Context) : View(context) {
         val tw = dp(48f); val th = dp(24f)
         val tx = r.right - tw - dp(14f); val ty = r.centerY() - th / 2
         roundRect(c, RectF(tx, ty, tx + tw, ty + th), th / 2, if (on) Color.rgb(22, 163, 74) else Color.rgb(71, 85, 105))
+        if (on) { p.color = Color.rgb(74, 222, 128); p.alpha = (40 + 20 * sin(time * 3f)).toInt().coerceIn(20, 60); c.drawCircle(tx + th / 2 + (tw - th) * nv, r.centerY(), dp(13f), p); p.alpha = 255 } // #716 a live toggle's knob glows
         p.color = Color.WHITE
         c.drawCircle(tx + th / 2 + (tw - th) * nv, r.centerY(), dp(9f), p)
     }
@@ -1825,6 +1941,7 @@ class GameView(context: Context) : View(context) {
         button(c, rect, "", fill, Color.WHITE, size, id, stroke)
         p.color = Color.WHITE; p.alpha = 36
         c.drawCircle(rect.left + dp(chipDp), rect.centerY(), dp(17f), p); p.alpha = 255
+        poly(c, rect.left + dp(chipDp) + dp(12f), rect.centerY() - dp(12f), dp(3f), 4, time * 2.6f + rect.top * 0.01f, Color.rgb(250, 204, 21)) // #717 menu medallions wear a spinning spark
         txt(c, icon, rect.left + dp(chipDp), rect.centerY() + dp(7f), dp(16f), Color.WHITE)
         txt(c, label, rect.centerX() + dp(12f), rect.centerY() + size * 0.36f, dp(size), Color.WHITE)
     }
@@ -1838,12 +1955,19 @@ class GameView(context: Context) : View(context) {
             Triple(w * 0.8f + cos(time * 0.07f) * dp(24f), h * 0.62f + sin(time * 0.1f) * dp(18f), Color.rgb(30, 58, 138)),
             Triple(w * 0.55f + sin(time * 0.05f) * dp(14f), h * 0.85f, Color.rgb(80, 20, 80)))
         for ((nx, ny, ncol) in neb) {
-            p.color = ncol; p.alpha = 26
+            val np2 = 0.82f + 0.18f * sin(time * 0.23f + nx * 0.011f) // #497 nebulae breathe
+            p.color = ncol; p.alpha = (26 * np2).toInt()
             c.drawCircle(nx, ny, dp(120f), p)
-            p.alpha = 16
+            p.alpha = (16 * np2).toInt()
             c.drawCircle(nx, ny, dp(180f), p)
+            p.alpha = (12 * np2).toInt()
+            if (sin(time * 1.9f + nx * 0.021f + ny * 0.013f) > 0.93f) poly(c, nx, ny, dp(7f), 4, time * 1.2f, Color.WHITE) // #548 nebula cores twinkle
+            p.color = ncol; p.alpha = (12 * np2).toInt() // loop-10 fix: poly() leaves the pen white — restore it before the core (was drawing a solid white disc)
+            c.drawCircle(nx, ny, dp(58f), p) // #425 bright nebula core
         }
         p.alpha = 255
+        p.color = Color.rgb(165, 243, 252); p.alpha = 13 // #509 soft spotlight follows your turtle
+        c.drawCircle(px, py, dp(200f), p); p.alpha = 255
         // neon grid — #53 pulses on the 126 BPM beat
         val beat = (sin(time * 6.6f) * 0.5f + 0.5f)
         p.color = Color.rgb(88, 28, 135); p.alpha = (if (save.highContrast) 95 else 46) + (beat * 14).toInt(); p.strokeWidth = 1.5f; p.style = Paint.Style.STROKE
@@ -1853,13 +1977,59 @@ class GameView(context: Context) : View(context) {
         while (gx < w) { c.drawLine(gx, 0f, gx, h, p); gx += gap }
         var gy = -gap + off
         while (gy < h) { c.drawLine(0f, gy, w, gy, p); gy += gap }
+        val shx = ((time * 0.045f) % 1.4f - 0.2f) * w // #549 a slow sheen sweeps the grid
+        p.color = Color.WHITE; p.alpha = 7
+        c.drawLine(shx, 0f, shx - dp(120f), h, p)
+        c.drawLine(shx + dp(26f), 0f, shx + dp(26f) - dp(120f), h, p)
+        if (beat > 0.9f) { p.color = Color.rgb(216, 180, 254); p.alpha = 60; for (k in 0 until 5) c.drawCircle((k * 0.37f + 0.08f) * w, (k * 0.53f + 0.11f) * h, dp(1.6f), p) } // #617 grid nodes sparkle on the beat peak
         p.alpha = 255; p.style = Paint.Style.FILL
         // stars — #51 two-speed parallax drift (far layer crawls, near layer slides)
         for (s in stars) {
             val tw = 0.45f + 0.55f * (0.5f + 0.5f * sin(time * 2f + s.phase))
-            p.color = Color.rgb(165, 243, 252); p.alpha = (200 * tw).toInt()
+            p.color = if (s.phase > 3.14f) Color.rgb(254, 240, 138) else Color.rgb(165, 243, 252) // #427 half the sky burns warm
+            p.alpha = (200 * tw).toInt()
             val drift = (time * s.size * 5f) % (h + 8f)
             c.drawCircle(s.x, (s.y + drift) % (h + 8f) - 4f, s.size, p)
+            if (s.phase > 3.14f && s.size > 2f) { p.alpha = (36 * tw).toInt(); c.drawCircle(s.x, (s.y + drift) % (h + 8f) - 4f, s.size * 2.4f, p) } // #618 warm stars wear a halo
+            if (s.size > 2.6f) { // #464 the brightest stars throw a cross glint, #507 slowly rotating
+                val gy = (s.y + drift) % (h + 8f) - 4f; val gl = dp(5f) * (0.6f + 0.4f * sin(time * 2f + s.phase))
+                val ga3 = 0.45f * sin(time * 0.7f + s.phase)
+                p.alpha = (120 * tw).toInt()
+                c.drawLine(s.x - cos(ga3) * gl, gy - sin(ga3) * gl, s.x + cos(ga3) * gl, gy + sin(ga3) * gl, p)
+                c.drawLine(s.x - cos(ga3 + 1.57f) * gl, gy - sin(ga3 + 1.57f) * gl, s.x + cos(ga3 + 1.57f) * gl, gy + sin(ga3 + 1.57f) * gl, p)
+            }
+        }
+        p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.4f); p.color = Color.WHITE; p.alpha = 16 // #582 a vast slow star-ring turns in the deep background
+        for (k in 0 until 4) c.drawArc(RectF(w * 0.85f - dp(150f), h * 0.18f - dp(150f), w * 0.85f + dp(150f), h * 0.18f + dp(150f)), time * 6f + k * 90f, 40f, false, p)
+        p.style = Paint.Style.FILL; p.alpha = 255
+        // #426 shooting stars: one streak every ~9s, path set by the cycle
+        val cyc = (time / 9f).toInt(); val sph = time - cyc * 9f
+        if (sph < 0.8f) {
+            val sx0 = (0.5f + 0.5f * sin(cyc * 12.9898f)) * w * 0.7f
+            val sy0 = (0.5f + 0.5f * cos(cyc * 78.233f)) * h * 0.3f
+            val sf = sph / 0.8f; val hx = sx0 + sf * dp(190f); val hy = sy0 + sf * dp(120f)
+            p.style = Paint.Style.STROKE; p.strokeWidth = dp(2f); p.color = Color.rgb(165, 243, 252)
+            p.alpha = (170 * (1f - sf)).toInt()
+            c.drawLine(hx - dp(44f), hy - dp(28f), hx, hy, p)
+            p.style = Paint.Style.FILL
+            p.color = Color.rgb(165, 243, 252); p.alpha = (60 * (1f - sf)).toInt()
+            c.drawCircle(hx, hy, dp(7f), p)
+            p.color = Color.WHITE; p.alpha = (220 * (1f - sf)).toInt()
+            c.drawCircle(hx, hy, dp(2.4f), p) // #629 the shooting star's head glows
+        }
+        // #463 a ringed giant drifts across the deep background
+        val pph = (time % 75f) / 75f
+        if (pph < 0.6f) {
+            val plx = -dp(90f) + (w + dp(180f)) * (pph / 0.6f); val ply = h * 0.16f
+            p.color = Color.rgb(30, 16, 54); p.alpha = 150
+            c.drawCircle(plx, ply, dp(64f), p)
+            p.style = Paint.Style.STROKE; p.strokeWidth = dp(2.5f); p.color = Color.rgb(168, 85, 247); p.alpha = 110
+            c.drawArc(RectF(plx - dp(64f), ply - dp(64f), plx + dp(64f), ply + dp(64f)), -60f, 90f, false, p)
+            p.strokeWidth = dp(5f); p.color = Color.rgb(88, 60, 150); p.alpha = 80
+            c.drawOval(RectF(plx - dp(98f), ply - dp(18f), plx + dp(98f), ply + dp(18f)), p)
+            p.style = Paint.Style.FILL; p.alpha = 255
+            p.color = Color.rgb(203, 213, 225); p.alpha = 130 // #630 a moon rides with the giant
+            c.drawCircle(plx + cos(time * 0.5f) * dp(84f), ply + sin(time * 0.5f) * dp(30f), dp(5f), p); p.alpha = 255
         }
         p.alpha = 255
     }
@@ -1940,6 +2110,8 @@ class GameView(context: Context) : View(context) {
         for (d in decals) {
             p.color = Color.rgb(0, 0, 0); p.alpha = (90 * (d.life / 6f)).toInt().coerceIn(0, 90)
             c.drawCircle(d.x, d.y, d.r, p)
+            if (d.life > 4f) { p.color = Color.rgb(249, 115, 22); p.alpha = (26 * ((d.life - 4f) / 2f)).toInt().coerceIn(0, 26); c.drawCircle(d.x, d.y, d.r * 0.7f, p) } // #601 fresh scorch still glows
+            if (d.life > 2f) { p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.2f); p.color = Color.rgb(120, 53, 15); p.alpha = (40 * (d.life / 6f)).toInt().coerceIn(0, 40); c.drawCircle(d.x, d.y, d.r, p); p.style = Paint.Style.FILL } // #642 scorch marks keep a baked rim
         }
         p.alpha = 255
         for (b in blooms) { // #245 explosion light bloom (radial gradient)
@@ -1947,6 +2119,7 @@ class GameView(context: Context) : View(context) {
             p.shader = RadialGradient(b.x, b.y, b.r, Color.argb((110 * bf).toInt(), Color.red(b.color), Color.green(b.color), Color.blue(b.color)), Color.argb(0, 0, 0, 0), Shader.TileMode.CLAMP)
             c.drawCircle(b.x, b.y, b.r, p)
             p.shader = null
+            p.color = Color.WHITE; p.alpha = (120 * bf).toInt().coerceIn(0, 120); c.drawCircle(b.x, b.y, b.r * 0.18f, p); p.alpha = 255 // #603 blooms burn white at the core
         }
 
         // #239 ambient dust motes drifting up through the arena
@@ -1955,6 +2128,7 @@ class GameView(context: Context) : View(context) {
             val my = h - ((time * 11f + i * 173f) % (h + dp(40f))) + dp(20f)
             p.color = Color.rgb(203, 213, 225); p.alpha = 34 + (i % 3) * 12
             c.drawCircle(mx, my, dp(1.7f), p)
+            if (i % 5 == 0) { p.color = Color.WHITE; p.alpha = (50 + 40 * sin(time * 3f + i * 2.3f)).toInt().coerceIn(10, 90); c.drawCircle(mx, my, dp(0.9f), p) } // #605 every fifth dust mote glints
         }
         p.alpha = 255
 
@@ -1967,10 +2141,13 @@ class GameView(context: Context) : View(context) {
             c.drawCircle(pl.x + sin(time * 1.7f + pl.y) * dp(8f), pl.y + cos(time * 1.3f + pl.x) * dp(6f), pl.r * 0.62f, p)
             p.alpha = (80 * fade).toInt()
             c.drawCircle(pl.x + cos(time * 2.3f + pl.x) * dp(12f), pl.y + sin(time * 1.9f) * dp(9f), pl.r * 0.34f, p)
+            p.color = Color.rgb(20, 83, 45); p.alpha = (70 * fade).toInt() // #522 dark toxic core churns
+            c.drawCircle(pl.x + cos(-time * 1.1f + pl.y * 0.05f) * pl.r * 0.3f, pl.y + sin(-time * 0.9f + pl.x * 0.05f) * pl.r * 0.3f, pl.r * 0.3f, p)
             for (k in 0 until 3) { // #191 bubbling pulse
                 val ph = (time * 0.8f + pl.x * 0.13f + k * 0.37f) % 1f
                 p.color = Color.rgb(134, 239, 172); p.alpha = (80 * (1f - ph) * fade).toInt()
                 c.drawCircle(pl.x + cos(k * 2.4f + pl.y) * pl.r * 0.45f, pl.y + sin(k * 1.9f + pl.x) * pl.r * 0.4f, dp(3.5f) * sin(ph * 3.14159f), p)
+                if (ph > 0.42f && ph < 0.58f) { p.color = Color.WHITE; p.alpha = (120 * fade).toInt(); c.drawCircle(pl.x + cos(k * 2.4f + pl.y) * pl.r * 0.45f - dp(1f), pl.y + sin(k * 1.9f + pl.x) * pl.r * 0.4f - dp(1f), dp(1f), p) } // #644 bubbles flash a highlight at their peak
             }
             p.alpha = 255
         }
@@ -1979,10 +2156,19 @@ class GameView(context: Context) : View(context) {
             val fade = min(1f, fp.life)
             p.color = Color.rgb(249, 115, 22); p.alpha = (52 * fade).toInt()
             c.drawCircle(fp.x, fp.y, fp.r * (1f + 0.08f * sin(time * 11f + fp.x)), p)
+            p.color = Color.rgb(254, 240, 138); p.alpha = (46 * fade).toInt() // #607 a pale hot core flickers at the center
+            c.drawCircle(fp.x + sin(time * 9.3f + fp.y) * dp(3f), fp.y + cos(time * 7.7f + fp.x) * dp(3f), fp.r * 0.3f, p)
             p.color = Color.rgb(239, 68, 68); p.alpha = (70 * fade).toInt()
             c.drawCircle(fp.x, fp.y, fp.r * 0.6f, p)
             p.color = Color.rgb(254, 240, 138); p.alpha = (90 * fade).toInt()
             c.drawCircle(fp.x + sin(time * 9f + fp.y) * dp(5f), fp.y - dp(3f), fp.r * 0.28f, p)
+            for (k in 0 until 3) { // #521 flame tongues lick upward
+                val fx2 = fp.x + cos(k * 2.1f + fp.x * 0.07f) * fp.r * 0.45f
+                val fh = fp.r * (0.30f + 0.16f * sin(time * 13f + k * 2.1f + fp.y * 0.05f))
+                p.color = Color.rgb(251, 146, 60); p.alpha = (70 * fade).toInt()
+                c.drawCircle(fx2, fp.y - fh, fp.r * 0.16f, p)
+                p.color = Color.rgb(254, 240, 138); p.alpha = (60 * fade).toInt(); c.drawCircle(fx2, fp.y - fh, fp.r * 0.07f, p) // #643 flame tongues burn pale at the tip
+            }
             p.alpha = 255
         }
         // #72 arena edge neon trim
@@ -1990,9 +2176,25 @@ class GameView(context: Context) : View(context) {
         p.color = if (bossWave && enemies.any { it.type == 5 }) Color.rgb(220, 38, 38) else Color.rgb(168, 85, 247)
         p.alpha = 90
         c.drawRect(dp(5f), dp(5f), w - dp(5f), h - dp(5f), p)
+        p.style = Paint.Style.STROKE; p.strokeWidth = dp(3.4f); p.alpha = 170 // #523 bright corner brackets
+        val cl = dp(18f); val ci = dp(5f)
+        c.drawLine(ci, ci + cl, ci, ci, p); c.drawLine(ci, ci, ci + cl, ci, p)
+        c.drawLine(w - ci - cl, ci, w - ci, ci, p); c.drawLine(w - ci, ci, w - ci, ci + cl, p)
+        c.drawLine(ci, h - ci - cl, ci, h - ci, p); c.drawLine(ci, h - ci, ci + cl, h - ci, p)
+        c.drawLine(w - ci - cl, h - ci, w - ci, h - ci, p); c.drawLine(w - ci, h - ci - cl, w - ci, h - ci, p)
+        if (state == State.PLAYING && maxHp > 0 && hp / maxHp < 0.25f) { // #539 low-HP heartbeat edge glow
+            p.style = Paint.Style.STROKE; p.strokeWidth = dp(5f); p.color = Color.rgb(239, 68, 68)
+            p.alpha = (40 + 35 * sin(time * 6.5f)).toInt().coerceIn(5, 75)
+            c.drawRect(dp(8f), dp(8f), w - dp(8f), h - dp(8f), p)
+            p.strokeWidth = dp(3.4f); p.alpha = (120 + 90 * sin(time * 6.5f)).toInt().coerceIn(30, 210) // #652 the corner brackets throb with the heartbeat
+            c.drawLine(ci, ci + cl, ci, ci, p); c.drawLine(ci, ci, ci + cl, ci, p)
+            c.drawLine(w - ci - cl, ci, w - ci, ci, p); c.drawLine(w - ci, ci, w - ci, ci + cl, p)
+            c.drawLine(ci, h - ci - cl, ci, h - ci, p); c.drawLine(ci, h - ci, ci + cl, h - ci, p)
+            c.drawLine(w - ci - cl, h - ci, w - ci, h - ci, p); c.drawLine(w - ci, h - ci - cl, w - ci, h - ci, p)
+        }
         p.style = Paint.Style.FILL; p.alpha = 255
         if (enemies.any { it.type == 5 }) { // #82 boss arena tint
-            p.color = Color.rgb(190, 18, 60); p.alpha = 13
+            p.color = Color.rgb(190, 18, 60); p.alpha = (11 + 5 * sin(time * 2f)).toInt().coerceIn(6, 16) // #524 the boss tint breathes
             c.drawRect(0f, 0f, w, h, p); p.alpha = 255
         }
 
@@ -2001,6 +2203,7 @@ class GameView(context: Context) : View(context) {
             p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.5f); p.color = Color.rgb(52, 211, 153)
             p.alpha = (26 + 14 * sin(time * 3.4f)).toInt().coerceIn(12, 40)
             c.drawCircle(px, py, magnetR, p); p.style = Paint.Style.FILL; p.alpha = 255
+            (0 until 3).forEach { k -> val ma = time * 1.8f + k * 2.09f; p.color = Color.rgb(167, 243, 208); p.alpha = 60; c.drawCircle(px + cos(ma) * magnetR, py + sin(ma) * magnetR, dp(1.8f), p) }; p.alpha = 255 // #684 ants march the magnet ring
         }
 
         // gems
@@ -2010,6 +2213,8 @@ class GameView(context: Context) : View(context) {
             val bob = sin(time * 4f + g.x * 0.05f) * dp(2f)
             p.color = Color.rgb(52, 211, 153); p.alpha = 70
             c.drawCircle(g.x, g.y + bob, r * 1.9f, p); p.alpha = 255
+            val gNear = if (!g.mag) gemDrops.firstOrNull { it !== g && !it.mag && hyp(it.x - g.x, it.y - g.y) < dp(30f) } else null // #562 gems about to merge hum together
+            if (gNear != null) { p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.2f); p.color = Color.rgb(167, 243, 208); p.alpha = (40 + 25 * sin(time * 6f + g.x * 0.05f)).toInt().coerceIn(15, 65); c.drawLine(g.x, g.y + bob, gNear.x, gNear.y + sin(time * 4f + gNear.x * 0.05f) * dp(2f), p); p.style = Paint.Style.FILL; p.alpha = 255 }
             poly(c, g.x, g.y + bob, r, 4, 0.78f, Color.rgb(52, 211, 153))
             poly(c, g.x, g.y + bob, r * 0.5f, 4, 0.78f, Color.rgb(167, 243, 208))
             // #60 sparkle cross
@@ -2018,7 +2223,29 @@ class GameView(context: Context) : View(context) {
             c.drawRect(g.x - sp, g.y + bob - dp(0.8f), g.x + sp, g.y + bob + dp(0.8f), p)
             c.drawRect(g.x - dp(0.8f), g.y + bob - sp, g.x + dp(0.8f), g.y + bob + sp, p)
             p.alpha = 255
+            if (!big && sin(time * 5f + g.x) > 0.92f) { p.color = Color.WHITE; p.alpha = 200; c.drawCircle(g.x, g.y + bob, dp(1.3f), p); p.alpha = 255 } // #613 small gems wink
             if (g.mag) { p.color = Color.WHITE; p.alpha = 170; c.drawCircle(g.x, g.y + bob, r * 0.3f, p); p.alpha = 255 }
+            if (big) { // #460 rich gems wear a rotating sparkle
+                val sa2 = time * 3f + g.x * 0.05f
+                poly(c, g.x + cos(sa2) * r * 1.5f, g.y + bob + sin(sa2) * r * 1.5f, r * 0.4f, 4, sa2, Color.rgb(254, 240, 138))
+            }
+            if (big) { // #527 rich gems also wear a slow halo ring
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.3f); p.color = Color.rgb(254, 240, 138); p.alpha = 90
+                c.drawArc(RectF(g.x - r * 1.7f, g.y + bob - r * 1.7f, g.x + r * 1.7f, g.y + bob + r * 1.7f), time * 60f + g.x * 0.03f, 200f, false, p)
+                p.style = Paint.Style.FILL; p.alpha = 255
+            }
+            if (sin(time * 2.4f + g.x * 0.13f + g.y * 0.071f) > 0.94f) // #500 idle gems twinkle
+                poly(c, g.x, g.y + bob, r * 0.85f, 4, time * 1.5f, Color.WHITE)
+            if (g.mag) { // #442 comet tail as gems rocket home
+                val ga2 = atan2(py - g.y, px - g.x)
+                p.color = Color.rgb(52, 211, 153); p.alpha = 90
+                poly(c, g.x - cos(ga2) * r * 1.5f, g.y + bob - sin(ga2) * r * 1.5f, r * 0.55f, 4, 0.78f, Color.rgb(52, 211, 153))
+                p.alpha = 255
+            }
+            if (vacuumT > 0 && g.mag) { // #590 vacuum streams burn white at the tip
+                val ga3 = atan2(py - g.y, px - g.x)
+                poly(c, g.x - cos(ga3) * r * 2.6f, g.y + bob - sin(ga3) * r * 2.6f, r * 0.4f, 4, 0.78f, Color.WHITE)
+            }
             if (g.mag) { // #75 magnet stream line to the player
                 p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.2f); p.color = Color.rgb(52, 211, 153); p.alpha = 42
                 c.drawLine(g.x, g.y + bob, px, py, p)
@@ -2029,6 +2256,7 @@ class GameView(context: Context) : View(context) {
                 c.drawLine(g.x, g.y + bob, px, py, p)
                 p.style = Paint.Style.FILL; p.alpha = 255
             }
+            if (vacuumT > 0 && g.mag) { p.color = Color.WHITE; p.alpha = 150; c.drawCircle((g.x + px) / 2, (g.y + bob + py) / 2, dp(1.6f), p); p.alpha = 255 } // #685 a bead rides each vacuum stream
         }
 
         // #91 merge glow when the field is rich with gems
@@ -2037,28 +2265,46 @@ class GameView(context: Context) : View(context) {
             for (g in gemDrops) { mx += g.x; my += g.y }
             mx /= gemDrops.size; my /= gemDrops.size
             p.color = Color.rgb(52, 211, 153); p.alpha = (22 + 10 * sin(time * 3f)).toInt().coerceIn(12, 32)
-            c.drawCircle(mx, my, dp(90f), p); p.alpha = 255
+            c.drawCircle(mx, my, dp(90f), p)
+            p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.6f); p.alpha = 60 // #520 rotating dashed ring on the merge glow
+            for (k in 0 until 3) c.drawArc(RectF(mx - dp(90f), my - dp(90f), mx + dp(90f), my + dp(90f)), time * 40f + k * 120f, 60f, false, p)
+            p.strokeWidth = dp(1.1f); p.alpha = 34; c.drawCircle(mx, my, dp(90f) * (0.7f + 0.3f * (0.5f + 0.5f * sin(time * 3f))), p) // #686 a second ring breathes inside the merge glow
+            p.style = Paint.Style.FILL; p.alpha = 255
         }
 
         // hearts
         for (hd in hearts) {
-            val pulse = 1f + 0.18f * sin(time * 6f + hd.x * 0.03f)
+            val urg = if (maxHp > 0) 1f - hp / maxHp else 0f // #506 the heart beats faster the more hurt you are
+            val pulse = 1f + (0.18f + 0.14f * urg) * sin(time * (6f + 7f * urg) + hd.x * 0.03f)
             val r = dp(10f) * pulse
-            p.color = Color.rgb(74, 222, 128); p.alpha = 26 // #246 heart beacon light column
-            c.drawRect(hd.x - dp(9f), hd.y - dp(300f), hd.x + dp(9f), hd.y, p)
-            p.alpha = 52
-            c.drawRect(hd.x - dp(3f), hd.y - dp(300f), hd.x + dp(3f), hd.y, p)
-            p.alpha = 255
-            p.color = Color.rgb(74, 222, 128); p.alpha = 60
-            c.drawCircle(hd.x, hd.y, r * 2f, p); p.alpha = 255
-            p.color = Color.rgb(244, 114, 182)
+            p.color = Color.BLACK; p.alpha = 70 // #455 soft shadow grounds the heart
+            c.drawOval(RectF(hd.x - r * 0.8f, hd.y + r * 1.15f, hd.x + r * 0.8f, hd.y + r * 1.55f), p); p.alpha = 255
+            // v2.3.1: ONE red heart — the screen-filling green beacon (#246), the ring and the cross are gone
+            p.color = Color.rgb(220, 38, 38); p.alpha = 45
+            c.drawCircle(hd.x, hd.y, r * 1.9f, p); p.alpha = 255
+            p.color = Color.rgb(239, 68, 68)
             c.drawCircle(hd.x - r * 0.45f, hd.y - r * 0.25f, r * 0.55f, p)
             c.drawCircle(hd.x + r * 0.45f, hd.y - r * 0.25f, r * 0.55f, p)
-            poly(c, hd.x, hd.y + r * 0.62f, r * 0.78f, 3, 3.14159f, Color.rgb(244, 114, 182))
-            poly(c, hd.x, hd.y, r * 0.52f, 4, 0.78f, Color.rgb(249, 168, 212))
-            p.color = Color.WHITE
-            c.drawRect(hd.x - dp(1.6f), hd.y - dp(5f), hd.x + dp(1.6f), hd.y + dp(5f), p)
-            c.drawRect(hd.x - dp(5f), hd.y - dp(1.6f), hd.x + dp(5f), hd.y + dp(1.6f), p)
+            poly(c, hd.x, hd.y + r * 0.62f, r * 0.78f, 3, 3.14159f, Color.rgb(239, 68, 68))
+            poly(c, hd.x, hd.y, r * 0.5f, 4, 0.78f, Color.rgb(252, 165, 165))
+            if (hyp(px - hd.x, py - hd.y) < dp(140f)) { // #528 a faint red thread reaches for you when close
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.4f); p.color = Color.rgb(239, 68, 68); p.alpha = (50 + 30 * sin(time * 7f)).toInt().coerceIn(20, 80)
+                c.drawLine(hd.x, hd.y, px, py, p); c.drawCircle((hd.x + px) / 2, (hd.y + py) / 2 + sin(time * 7f) * dp(2f), dp(2f), p); p.style = Paint.Style.FILL; p.alpha = 255 // #595 a bead rides the heart thread
+            }
+        }
+
+        if (heartPopT > 0) { // ❤️ ONE red animated heart on pickup (Nathan v2.4 — replaces the two text hearts)
+            val hf = (heartPopT / 0.9f).coerceIn(0f, 1f)
+            val hr = dp(13f) * (1.35f - 0.35f * hf) * (1f + 0.16f * sin(time * 16f)) // heartbeat pulse as it settles
+            val hx3 = px; val hy3 = py - dp(48f) - dp(16f) * (1f - hf)
+            p.color = Color.rgb(239, 68, 68); p.alpha = (255 * min(1f, hf * 2.5f)).toInt().coerceIn(0, 255)
+            c.drawCircle(hx3 - hr * 0.45f, hy3 - hr * 0.25f, hr * 0.55f, p)
+            c.drawCircle(hx3 + hr * 0.45f, hy3 - hr * 0.25f, hr * 0.55f, p)
+            poly(c, hx3, hy3 + hr * 0.62f, hr * 0.78f, 3, 3.14159f, Color.rgb(239, 68, 68))
+            poly(c, hx3, hy3, hr * 0.5f, 4, 0.78f, Color.rgb(252, 165, 165))
+            (0 until 3).forEach { k -> val ha = time * 5f + k * 2.09f; p.color = Color.rgb(254, 202, 202); p.alpha = (170 * min(1f, hf * 2.5f)).toInt().coerceIn(0, 170); c.drawCircle(hx3 + cos(ha) * hr * 1.25f, hy3 + sin(ha) * hr * 1.25f, dp(1.6f), p) }; p.alpha = 255 // #687 sparkles orbit the pickup heart
+            if (hf in 0.35f..0.75f && particles.size < 370 && Random.nextFloat() < 0.3f) particles.add(Particle(hx3 + (Random.nextFloat() - 0.5f) * dp(20f), hy3, (Random.nextFloat() - 0.5f) * 40f, -30f, 0.4f, 0.4f, Color.rgb(252, 165, 165), dp(2.2f))) // #567 the pickup heart sheds sparkles at its peak
+            p.alpha = 255
         }
 
         // #187 elite spawn beams of light
@@ -2077,10 +2323,86 @@ class GameView(context: Context) : View(context) {
         // enemies
         for (e in enemies) {
             val eSc = if (e.spawnT > 0) 1f - 0.55f * min(1f, e.spawnT / 0.32f) else 1f // #160 + #199
+            if (e.spawnT > 0.24f && (e.type == 2 || e.type == 10 || e.type == 5)) { // #452 heavy units land with a dust ring
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(2f); p.color = Color.rgb(168, 162, 158)
+                p.alpha = ((e.spawnT - 0.24f) / 0.08f * 120f).toInt().coerceIn(0, 120)
+                c.drawCircle(e.x, e.y, e.radius * (2.2f - (e.spawnT - 0.24f) * 6f), p)
+                p.style = Paint.Style.FILL; p.alpha = 255
+            }
             if (e.elite) { // #247 elite beacon light column
                 p.color = Color.rgb(250, 204, 21); p.alpha = (30 + 14 * sin(time * 5f)).toInt().coerceIn(16, 44)
                 c.drawRect(e.x - dp(8f), e.y - dp(320f), e.x + dp(8f), e.y, p)
+                for (k in 0 until 2) { val byy = e.y - ((time * 46f + k * 131f + e.x) % dp(300f)); p.color = Color.rgb(254, 240, 138); p.alpha = (60 + 40 * sin(time * 6f + k * 2.6f)).toInt().coerceIn(20, 100); c.drawCircle(e.x + sin(time * 3f + k * 4.1f) * dp(4f), byy, dp(1.7f), p) } // #626 sparks rise in the elite beacon
                 p.alpha = 255
+            }
+            if (e.type == 5 && bossIntroT > 0) { // #563 the Warden enters under a spotlight
+                p.color = Color.WHITE; p.alpha = (26 * (bossIntroT / 2f).coerceIn(0f, 1f)).toInt()
+                c.drawCircle(e.x, e.y, e.radius * 2.6f, p); p.alpha = 255
+            }
+            if (e.elite) { // #501 elites wear a rotating gold double-ring
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.6f); p.color = Color.rgb(250, 204, 21); p.alpha = 150
+                c.drawArc(RectF(e.x - e.radius - dp(4f), e.y - e.radius - dp(4f), e.x + e.radius + dp(4f), e.y + e.radius + dp(4f)), time * 130f, 240f, false, p)
+                p.alpha = 90
+                c.drawArc(RectF(e.x - e.radius - dp(7f), e.y - e.radius - dp(7f), e.x + e.radius + dp(7f), e.y + e.radius + dp(7f)), -time * 95f, 200f, false, p)
+                p.strokeWidth = dp(1.1f); p.color = Color.rgb(254, 240, 138); p.alpha = 60 // #637 a third hairline ring counter-turns
+                c.drawArc(RectF(e.x - e.radius - dp(10f), e.y - e.radius - dp(10f), e.x + e.radius + dp(10f), e.y + e.radius + dp(10f)), time * 60f, 120f, false, p)
+                p.style = Paint.Style.FILL; p.alpha = 255
+            }
+            if (e.type == 5) { // #502 boss dread ring on the ground
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(2.6f); p.color = Color.rgb(220, 38, 38); p.alpha = (60 + 30 * sin(time * 3.2f)).toInt().coerceIn(30, 90)
+                c.drawCircle(e.x, e.y, e.radius * (1.25f + 0.05f * sin(time * 3.2f)), p)
+                p.style = Paint.Style.FILL; p.alpha = 255
+                for (k in 0 until 4) { val ta3 = k * 1.5708f + time * 0.9f; poly(c, e.x + cos(ta3) * e.radius * 1.25f, e.y + sin(ta3) * e.radius * 1.25f, dp(3f), 4, ta3, Color.rgb(220, 38, 38)) } // #636 thorn sparks ride the dread ring
+            }
+            if (e.slowT > 0) { // #503 frost crystals on slowed foes
+                for (k in 0 until 3) { val ca = k * 2.09f + e.x * 0.05f
+                    poly(c, e.x + cos(ca) * e.radius * 0.92f, e.y + sin(ca) * e.radius * 0.92f, dp(3.2f), 4, ca, Color.rgb(191, 219, 254)) }
+                if (e.frostAge > 1.2f) poly(c, e.x, e.y - e.radius - dp(3f), dp(3.6f), 4, time * 2.4f, Color.WHITE) // #635 deep-frozen foes grow a crown crystal
+            }
+            if (e.type == 8) { // #541 orbiter's path rings around you
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.2f); p.color = Color.WHITE; p.alpha = 26
+                c.drawCircle(px, py, hyp(e.x - px, e.y - py), p); p.style = Paint.Style.FILL; p.alpha = 255
+            }
+            if (e.type == 7 && e.state == 1) { // #574 the lancer telegraphs its charge line
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(2f); p.color = Color.rgb(239, 68, 68); p.alpha = (40 + 30 * sin(time * 10f)).toInt().coerceIn(10, 70)
+                c.drawLine(e.x, e.y, px, py, p); p.style = Paint.Style.FILL; p.alpha = 255
+            }
+            if (e.type == 3) { // #575 splitters jitter a ghost echo
+                p.color = enemyColor(3); p.alpha = 36
+                c.drawCircle(e.x + sin(e.wob * 2.2f) * dp(4f), e.y + cos(e.wob * 1.9f) * dp(3f), e.radius * 0.9f, p); p.alpha = 255
+            }
+            if (e.type == 2) { // #576 brute shoulders smolder
+                p.color = Color.rgb(249, 115, 22); p.alpha = (60 + 40 * sin(time * 4.5f + e.x * 0.02f)).toInt().coerceIn(20, 100)
+                c.drawCircle(e.x - e.radius * 0.55f, e.y - e.radius * 0.5f, dp(3.6f), p)
+                c.drawCircle(e.x + e.radius * 0.55f, e.y - e.radius * 0.5f, dp(3.6f), p); p.alpha = 255
+            }
+            if (e.type == 8) { // #578 a satellite spark orbits the orbiter
+                p.color = Color.WHITE; p.alpha = 190
+                c.drawCircle(e.x + cos(time * 3.2f + e.y * 0.01f) * (e.radius + dp(6f)), e.y + sin(time * 3.2f + e.y * 0.01f) * (e.radius + dp(6f)), dp(1.9f), p); p.alpha = 255
+                p.color = shade(enemyColor(8), 1.5f); p.alpha = 120; c.drawCircle(e.x + cos(time * 3.2f + e.y * 0.01f + 3.1416f) * (e.radius + dp(6f)), e.y + sin(time * 3.2f + e.y * 0.01f + 3.1416f) * (e.radius + dp(6f)), dp(1.4f), p); p.alpha = 255 // #667 a dimmer twin spark counterweights it
+            }
+            if (e.type == 4 && e.spawnT > 0.12f) { // #585 summoned minis flash a fuchsia birth ring
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.6f); p.color = Color.rgb(232, 121, 249); p.alpha = (150 * (e.spawnT / 0.32f)).toInt().coerceIn(0, 150)
+                c.drawCircle(e.x, e.y, e.radius + dp(3f), p); p.style = Paint.Style.FILL; p.alpha = 255
+            }
+            if (e.type == 9) { // #586 rune sparks orbit the Necroshard
+                for (k in 0 until 3) { val ra9 = time * 2.2f + k * 2.09f
+                    poly(c, e.x + cos(ra9) * (e.radius + dp(5f)), e.y + sin(ra9) * (e.radius + dp(5f)), dp(2.6f), 4, ra9, Color.rgb(232, 121, 249)) }
+            }
+            if (e.type == 10) { // #587 the Bulwark Brute's guard arc rotates
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(2.4f); p.color = Color.rgb(147, 197, 253); p.alpha = 130
+                c.drawArc(RectF(e.x - e.radius - dp(4f), e.y - e.radius - dp(4f), e.x + e.radius + dp(4f), e.y + e.radius + dp(4f)), time * 70f, 150f, false, p)
+                p.style = Paint.Style.FILL; (0 until 3).forEach { k -> val ba3 = (time * 70f + k * 50f) * 0.01745f; p.color = Color.rgb(219, 234, 254); p.alpha = 170; c.drawCircle(e.x + cos(ba3) * (e.radius + dp(4f)), e.y + sin(ba3) * (e.radius + dp(4f)), dp(1.5f), p) } // #669 rivets ride the guard arc
+                p.alpha = 255
+            }
+            if (e.type == 0 && enemies.count { it.type == 0 } >= 6) { // #588 a full chaser pack glows hungry
+                p.color = Color.rgb(239, 68, 68); p.alpha = 22
+                c.drawCircle(e.x, e.y, e.radius * 1.5f, p); p.alpha = 255
+            }
+            if (e.slowT > 0 && e.frostAge > 0.5f) { // #542 deep-frozen foes get an ice-cube outline
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.6f); p.color = Color.rgb(165, 243, 252); p.alpha = 120
+                c.drawRoundRect(RectF(e.x - e.radius - dp(2f), e.y - e.radius - dp(2f), e.x + e.radius + dp(2f), e.y + e.radius + dp(2f)), dp(5f), dp(5f), p)
+                p.style = Paint.Style.FILL; p.alpha = 255
             }
             c.save(); c.translate(e.x, e.y); c.scale(eSc, eSc); c.translate(-e.x, -e.y)
             val col = when {
@@ -2116,10 +2438,14 @@ class GameView(context: Context) : View(context) {
             }
             when (e.type) {
                 0 -> poly(c, e.x, e.y, e.radius * (1f + 0.13f * sin(e.wob * 3f)), 3, atan2(py - e.y, px - e.x) + 1.57f, col)
-                1 -> poly(c, e.x, e.y, e.radius, 4, time * 5f, col)
+                1 -> { // dart + #469 motion streaks
+                    for (tr3 in 1..2) { val da = atan2(py - e.y, px - e.x); p.alpha = 80 - tr3 * 25; poly(c, e.x - cos(da) * e.radius * 0.55f * tr3, e.y - sin(da) * e.radius * 0.55f * tr3, e.radius * (1f - tr3 * 0.22f), 4, time * 5f, col) }
+                    p.alpha = 255
+                    poly(c, e.x, e.y, e.radius, 4, time * 5f, col)
+                }
                 2 -> poly(c, e.x, e.y, e.radius, 6, time * 0.8f, col)
-                3 -> poly(c, e.x, e.y, e.radius, 4, time * 1.6f, col)
-                4 -> poly(c, e.x, e.y, e.radius * (1f + 0.2f * sin(time * 10f + e.wob)), 4, time * 3f, col)
+                3 -> { poly(c, e.x, e.y, e.radius, 4, time * 1.6f, col); poly(c, e.x, e.y, e.radius * 0.55f, 4, -time * 2.3f, shade(col, 1.5f)) } // #672 the splitter's heart counter-turns
+                4 -> { poly(c, e.x, e.y, e.radius * (1f + 0.2f * sin(time * 10f + e.wob)), 4, time * 3f, col); p.color = Color.WHITE; p.alpha = 190; c.drawCircle(e.x, e.y, dp(1.6f), p); p.alpha = 255 } // #673 minis carry a bright speck
                 5 -> {
                     poly(c, e.x, e.y, e.radius, 8, time * 0.6f, col)
                     poly(c, e.x, e.y, e.radius * 0.62f, 8, -time * 0.9f, Color.rgb(233, 213, 255))
@@ -2130,13 +2456,14 @@ class GameView(context: Context) : View(context) {
                         poly(c, e.x + cos(a) * e.radius * 1.05f, e.y + sin(a) * e.radius * 1.05f, spikeR, 3, a, Color.rgb(250, 204, 21))
                         poly(c, e.x + cos(a) * e.radius * 1.05f, e.y + sin(a) * e.radius * 1.05f, spikeR * 0.45f, 3, a, Color.rgb(254, 240, 138))
                     }
+                    if (((time * 2f + e.x * 0.01f).toInt() % 3) == 0) poly(c, e.x, e.y - e.radius * 1.05f, dp(4.4f), 4, time * 3f, Color.WHITE) // #674 the crown's center gem flashes
                 }
                 6 -> poly(c, e.x, e.y, e.radius, 5, time * 2.2f, col)
                 7 -> poly(c, e.x, e.y, e.radius * 1.15f, 3, atan2(py - e.y, px - e.x) + 1.57f, col)
                 8 -> { poly(c, e.x, e.y, e.radius, 6, -time * 2.6f, col); poly(c, e.x, e.y, e.radius * 0.45f, 4, time * 3f, Color.rgb(236, 254, 255)) }
-                9 -> { poly(c, e.x, e.y, e.radius, 4, time * 1.2f, col); poly(c, e.x, e.y, e.radius * 0.5f, 4, -time * 2f, Color.rgb(240, 171, 252)) }
+                9 -> { poly(c, e.x, e.y, e.radius, 4, time * 1.2f, col); poly(c, e.x, e.y, e.radius * 0.5f, 4, -time * 2f, Color.rgb(240, 171, 252)); poly(c, e.x, e.y, e.radius * 0.78f, 4, time * 0.7f, Color.rgb(88, 28, 135), false) } // #668 a rune ring turns inside the Necroshard
                 10 -> poly(c, e.x, e.y, e.radius, 6, 0.3f, col)
-                11 -> { poly(c, e.x, e.y, e.radius, 4, 0.78f + sin(time * 6f) * 0.2f, col); poly(c, e.x, e.y - e.radius * 1.15f, dp(6f), 3, -1.57f, Color.rgb(34, 197, 94)) }
+                11 -> { poly(c, e.x, e.y, e.radius, 4, 0.78f + sin(time * 6f) * 0.2f, col); poly(c, e.x, e.y - e.radius * 1.15f, dp(6f), 3, -1.57f, Color.rgb(34, 197, 94)); p.color = Color.rgb(250, 204, 21); p.alpha = (170 + 70 * sin(time * 7f)).toInt().coerceIn(100, 240); c.drawCircle(e.x, e.y - e.radius * 1.55f - (sin(time * 5f) * sin(time * 5f)) * dp(4f), dp(3.2f), p); p.alpha = 255 } // #670 a gold coin bounces over the gnome
             }
             // ---- main-unit detail pass ----
             val efa = atan2(py - e.y, px - e.x)
@@ -2152,7 +2479,8 @@ class GameView(context: Context) : View(context) {
             p.style = Paint.Style.FILL; p.alpha = 255
             if (e.elite) poly(c, e.x, e.y, e.radius * 0.84f, 6, time * 1.4f, Color.rgb(250, 204, 21), false) // #424 elite gold trim
             when (e.type) {
-                0 -> for (k in 0 until 4) { val ta = efa + (k - 1.5f) * 0.30f; poly(c, e.x + cos(ta) * e.radius * 0.88f, e.y + sin(ta) * e.radius * 0.88f, dp(3.4f), 3, ta + 1.57f, Color.rgb(226, 232, 240)) } // #413 chaser teeth
+                0 -> { for (k in 0 until 4) { val ta = efa + (k - 1.5f) * 0.30f; poly(c, e.x + cos(ta) * e.radius * 0.88f, e.y + sin(ta) * e.radius * 0.88f, dp(3.4f), 3, ta + 1.57f, Color.rgb(226, 232, 240)) } // #413 chaser teeth
+                    p.color = Color.rgb(254, 202, 202); p.alpha = (90 + 60 * sin(time * 5f + e.wob)).toInt().coerceIn(30, 150); c.drawCircle(e.x + cos(efa) * e.radius * 0.3f, e.y + sin(efa) * e.radius * 0.3f, dp(2f), p); p.alpha = 255 } // #675 the chaser's maw glows
                 1 -> { // #414 dart speed ghosts + fins
                     for (k in 1..2) { p.alpha = 70 - k * 22; poly(c, e.x - cos(efa) * e.radius * 0.75f * k, e.y - sin(efa) * e.radius * 0.75f * k, e.radius * (1f - 0.22f * k), 4, time * 5f, col) }
                     p.alpha = 255
@@ -2165,9 +2493,11 @@ class GameView(context: Context) : View(context) {
                         val pcx = e.x + cos(pa) * e.radius * 0.42f; val pcy = e.y + sin(pa) * e.radius * 0.42f
                         poly(c, pcx, pcy, e.radius * 0.36f, 6, pa, shade(col, 0.72f))
                         p.color = Color.rgb(15, 5, 20); c.drawCircle(pcx, pcy, dp(2f), p)
+                        p.color = Color.WHITE; p.alpha = 170; c.drawCircle(pcx - dp(2.5f), pcy - dp(2.5f), dp(1.1f), p); p.alpha = 255 // #433 rivet glint
                     }
+                    if (eHpF < 0.3f) { p.color = Color.rgb(239, 68, 68); p.alpha = (120 + 80 * sin(time * 9f)).toInt().coerceIn(40, 200); c.drawCircle(e.x, e.y, e.radius * 0.3f, p); p.alpha = 255 } // #671 a wounded brute's core burns red
                 }
-                3 -> for (k in 0 until 3) { val ba2 = e.wob * 2f + k * 2.094f; p.color = shade(col, 1.45f); c.drawCircle(e.x + cos(ba2) * e.radius * 0.38f, e.y + sin(ba2) * e.radius * 0.38f, e.radius * 0.21f, p) } // #416 splitter brood blobs
+                3 -> for (k in 0 until 3) { val ba2 = e.wob * 2f + k * 2.094f; p.color = shade(col, 1.45f); c.drawCircle(e.x + cos(ba2) * e.radius * 0.38f, e.y + sin(ba2) * e.radius * 0.38f, e.radius * 0.21f * (1f + 0.18f * sin(time * 7f + k * 2.1f)), p) } // #416 splitter brood blobs + #434 breathing pulse
                 6 -> { // #417 weaver ribbon trail segments
                     for (k in 1..3) {
                         val bx2 = e.x - cos(efa) * e.radius * 0.78f * k
@@ -2176,6 +2506,9 @@ class GameView(context: Context) : View(context) {
                         poly(c, bx2, by2, e.radius * (1f - 0.17f * k), 5, time * 2.2f - k * 0.5f, shade(col, 1f - 0.13f * k))
                     }
                     p.alpha = 255
+                    p.color = Color.WHITE; p.alpha = (120 + 60 * sin(time * 8f)).toInt().coerceIn(60, 180) // #465 ribbon head sparkles
+                    c.drawCircle(e.x - cos(efa) * e.radius * 0.78f, e.y - sin(efa) * e.radius * 0.78f, dp(2f), p); p.alpha = 255
+                    p.color = shade(col, 1.3f); p.alpha = 120; c.drawCircle(e.x + cos(efa + 1.57f) * e.radius * 0.8f, e.y + sin(efa + 1.57f) * e.radius * 0.8f, dp(1.8f), p); c.drawCircle(e.x - cos(efa + 1.57f) * e.radius * 0.8f, e.y - sin(efa + 1.57f) * e.radius * 0.8f, dp(1.8f), p); p.alpha = 255 // #665 silk anchor beads flank the weaver
                 }
                 7 -> { // #418 lancer lance rides ahead of the body
                     val glowA = if (e.state == 1) (170 + 80 * sin(time * 30f)).toInt().coerceIn(90, 250) else 150
@@ -2183,20 +2516,30 @@ class GameView(context: Context) : View(context) {
                     c.drawLine(e.x + cos(efa) * e.radius * 0.6f, e.y + sin(efa) * e.radius * 0.6f, e.x + cos(efa) * e.radius * 1.65f, e.y + sin(efa) * e.radius * 1.65f, p)
                     p.style = Paint.Style.FILL; p.alpha = 255
                     poly(c, e.x + cos(efa) * e.radius * 1.8f, e.y + sin(efa) * e.radius * 1.8f, dp(5f), 3, efa + 1.57f, shade(col, 1.6f))
+                    if (e.state == 1) { p.color = Color.WHITE; p.alpha = (140 + 100 * sin(time * 30f)).toInt().coerceIn(40, 240); c.drawCircle(e.x + cos(efa) * e.radius * 1.8f, e.y + sin(efa) * e.radius * 1.8f, dp(2.2f), p); p.alpha = 255 } // #666 the winding-up lance tip strobes
                 }
                 8 -> { // #419 orbiter satellites + orbit ring
-                    p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.5f); p.color = col; p.alpha = 60
+                    p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.5f); p.color = col; p.alpha = (60 + 25 * sin(time * 3f + e.wob)).toInt().coerceIn(35, 85) // #462 orbit ring breathes
                     c.drawCircle(e.x, e.y, e.radius * 1.5f, p); p.style = Paint.Style.FILL; p.alpha = 255
-                    for (k in 0 until 2) { val sa = time * 3.4f + k * 3.14159f; poly(c, e.x + cos(sa) * e.radius * 1.5f, e.y + sin(sa) * e.radius * 1.5f, dp(4.6f), 4, sa * 2f, shade(col, 1.5f)) }
+                    for (k in 0 until 2) { val sa = time * 3.4f + k * 3.14159f
+                        for (tr2 in 1..2) { val ta2 = sa - tr2 * 0.22f; p.alpha = 90 - tr2 * 30; poly(c, e.x + cos(ta2) * e.radius * 1.5f, e.y + sin(ta2) * e.radius * 1.5f, dp(4.6f) * (1f - tr2 * 0.25f), 4, ta2 * 2f, shade(col, 1.5f)) } // #435 satellite trails
+                        p.alpha = 255
+                        poly(c, e.x + cos(sa) * e.radius * 1.5f, e.y + sin(sa) * e.radius * 1.5f, dp(4.6f), 4, sa * 2f, shade(col, 1.5f)) }
                 }
                 9 -> { // #420 necroshard skull core + summoning runes
                     p.color = Color.rgb(248, 250, 252); c.drawCircle(e.x, e.y, e.radius * 0.30f, p)
                     p.color = Color.rgb(24, 4, 36)
                     c.drawCircle(e.x - e.radius * 0.11f, e.y - e.radius * 0.03f, e.radius * 0.075f, p)
                     c.drawCircle(e.x + e.radius * 0.11f, e.y - e.radius * 0.03f, e.radius * 0.075f, p)
+                    if (e.shootT < 0.5f) { // #436 eyes flare red before a summon
+                        p.color = Color.rgb(239, 68, 68); p.alpha = (150 + 90 * sin(time * 16f)).toInt().coerceIn(60, 240)
+                        c.drawCircle(e.x - e.radius * 0.11f, e.y - e.radius * 0.03f, e.radius * 0.045f, p)
+                        c.drawCircle(e.x + e.radius * 0.11f, e.y - e.radius * 0.03f, e.radius * 0.045f, p); p.alpha = 255
+                    }
                     if (e.shootT < 0.5f) {
                         p.style = Paint.Style.STROKE; p.strokeWidth = dp(2f); p.color = Color.rgb(240, 171, 252); p.alpha = (140 + 90 * sin(time * 14f)).toInt().coerceIn(50, 230)
                         c.drawCircle(e.x, e.y, e.radius * 1.35f, p)
+                        p.strokeWidth = dp(1.2f); c.drawCircle(e.x, e.y, e.radius * (1.35f - 0.18f * (0.5f + 0.5f * sin(time * 2f))), p) // #466 inner ring breathes against the runes
                         for (k in 0 until 4) { val ra = time * 2f + k * 1.571f; poly(c, e.x + cos(ra) * e.radius * 1.35f, e.y + sin(ra) * e.radius * 1.35f, dp(3.4f), 4, ra, Color.rgb(240, 171, 252)) }
                         p.style = Paint.Style.FILL; p.alpha = 255
                     }
@@ -2204,6 +2547,7 @@ class GameView(context: Context) : View(context) {
                 11 -> { // #422 gnome gem-sack + sparkle trail
                     p.color = Color.rgb(146, 96, 44); c.drawCircle(e.x - cos(efa) * e.radius * 0.85f, e.y - sin(efa) * e.radius * 0.85f, e.radius * 0.55f, p)
                     p.color = Color.rgb(250, 204, 21); c.drawCircle(e.x - cos(efa) * e.radius * 0.85f, e.y - sin(efa) * e.radius * 0.85f - e.radius * 0.4f, dp(2.4f), p)
+                    if ((time * 2f + e.wob).toInt() % 3 == 0) { p.color = Color.WHITE; c.drawCircle(e.x - cos(efa) * e.radius * 0.85f + dp(2f), e.y - sin(efa) * e.radius * 0.85f - e.radius * 0.4f, dp(1.2f), p) } // #472 loot glints in the sack
                     for (k in 1..2) { p.alpha = (150 - k * 45 + 40 * sin(time * 9f + k * 2f)).toInt().coerceIn(30, 200); poly(c, e.x - cos(efa) * e.radius * (1.1f + 0.5f * k), e.y - sin(efa) * e.radius * (1.1f + 0.5f * k) + dp(3f) * k, dp(3.6f), 4, time * 4f + k, Color.rgb(254, 240, 138)) }
                     p.alpha = 255
                 }
@@ -2217,6 +2561,7 @@ class GameView(context: Context) : View(context) {
                     c.drawLine(e.x - e.radius * 0.5f, e.y - e.radius * 0.55f, e.x - e.radius * 0.05f, e.y - e.radius * 0.1f, p)
                     c.drawLine(e.x - e.radius * 0.05f, e.y - e.radius * 0.1f, e.x + e.radius * 0.3f, e.y - e.radius * 0.25f, p)
                     if (eHpF < 0.33f) {
+                        p.color = Color.rgb(249, 115, 22); p.alpha = (150 + 80 * sin(time * 9f)).toInt().coerceIn(70, 230) // #468 deep cracks glow molten
                         c.drawLine(e.x + e.radius * 0.45f, e.y + e.radius * 0.4f, e.x + e.radius * 0.05f, e.y + e.radius * 0.15f, p)
                         c.drawLine(e.x + e.radius * 0.05f, e.y + e.radius * 0.15f, e.x - e.radius * 0.35f, e.y + e.radius * 0.45f, p)
                     }
@@ -2228,12 +2573,20 @@ class GameView(context: Context) : View(context) {
                 p.alpha = (120 + 120 * sin(time * 30f)).toInt().coerceIn(30, 240)
                 val ta = atan2(py - e.y, px - e.x)
                 c.drawLine(e.x, e.y, e.x + cos(ta) * dp(330f), e.y + sin(ta) * dp(330f), p)
+                p.style = Paint.Style.FILL // #437 charge chevrons race down the line
+                for (cv2 in 1..3) {
+                    val cd2 = (cv2 / 4f + (time * 1.4f) % 0.25f) * dp(330f)
+                    poly(c, e.x + cos(ta) * cd2, e.y + sin(ta) * cd2, dp(5f), 3, ta + 1.57f, Color.rgb(248, 113, 113))
+                }
+                p.style = Paint.Style.STROKE
                 p.style = Paint.Style.FILL; p.alpha = 255
             }
             if (e.type == 10) { // #117 bulwark shield arc faces the player; #421 flashes thick + white on a hit
                 p.style = Paint.Style.STROKE; p.strokeWidth = if (e.flash > 0) dp(7f) else dp(4f); p.color = if (e.flash > 0) Color.WHITE else Color.rgb(226, 232, 240); p.alpha = 200
                 val fa = Math.toDegrees(atan2(py - e.y, px - e.x).toDouble()).toFloat()
                 c.drawArc(RectF(e.x - e.radius * 1.15f, e.y - e.radius * 1.15f, e.x + e.radius * 1.15f, e.y + e.radius * 1.15f), fa - 55f, 110f, false, p)
+                p.strokeWidth = dp(1.6f); p.alpha = 90 // #438 inner shield sheen
+                c.drawArc(RectF(e.x - e.radius * 0.98f, e.y - e.radius * 0.98f, e.x + e.radius * 0.98f, e.y + e.radius * 0.98f), fa - 55f, 110f, false, p)
                 p.style = Paint.Style.FILL; p.alpha = 255
             }
             if (e.type == 5 && bossEnraged) { // #124 enrage aura
@@ -2271,9 +2624,13 @@ class GameView(context: Context) : View(context) {
             // hp bar (damaged only, boss always at top instead)
             if (e.type != 5 && e.hp < e.maxHp) {
                 val bw = e.radius * 2
-                p.color = Color.rgb(30, 10, 40); c.drawRect(e.x - e.radius, e.y - e.radius - dp(10f), e.x + e.radius, e.y - e.radius - dp(5f), p)
-                p.color = Color.rgb(74, 222, 128)
-                c.drawRect(e.x - e.radius, e.y - e.radius - dp(10f), e.x - e.radius + bw * (e.hp / e.maxHp), e.y - e.radius - dp(5f), p)
+                p.color = Color.rgb(30, 10, 40); c.drawRoundRect(RectF(e.x - e.radius, e.y - e.radius - dp(10f), e.x + e.radius, e.y - e.radius - dp(5f)), dp(2.5f), dp(2.5f), p) // #625 enemy HP bars get rounded caps
+                if (e.ghostHp > e.hp) { p.color = Color.rgb(226, 232, 240); c.drawRoundRect(RectF(e.x - e.radius, e.y - e.radius - dp(10f), e.x - e.radius + bw * (e.ghostHp / e.maxHp).coerceIn(0f, 1f), e.y - e.radius - dp(5f)), dp(2.5f), dp(2.5f), p) } // #432 recent-damage ghost
+                p.color = if (e.elite) Color.rgb(250, 204, 21) else Color.rgb(74, 222, 128) // #510 elite bars run gold
+                c.drawRoundRect(RectF(e.x - e.radius, e.y - e.radius - dp(10f), e.x - e.radius + bw * (e.hp / e.maxHp), e.y - e.radius - dp(5f)), dp(2.5f), dp(2.5f), p)
+                if (e.elite) { p.color = Color.rgb(250, 204, 21); p.alpha = 230; c.drawCircle(e.x - e.radius - dp(5f), e.y - e.radius - dp(7.5f), dp(2.2f), p); p.alpha = 255 } // #568 a gold bead marks the elite bar
+                p.color = Color.WHITE; p.alpha = 200 // #510 bright tip on the fill edge
+                c.drawCircle(e.x - e.radius + bw * (e.hp / e.maxHp).coerceIn(0f, 1f), e.y - e.radius - dp(7.5f), dp(1.6f), p); p.alpha = 255
             }
             c.restore()
         }
@@ -2282,6 +2639,10 @@ class GameView(context: Context) : View(context) {
         for (pr in projs) {
             p.color = pr.color; p.alpha = 70
             c.drawCircle(pr.x, pr.y, pr.radius * (2.1f + 0.25f * sin(time * 14f + pr.x * 0.05f)), p); p.alpha = 255
+            if (pr.fromPlayer) { // #439 wide soft halo on your shots
+                p.color = pr.color; p.alpha = 26
+                c.drawCircle(pr.x, pr.y, pr.radius * 3.4f, p); p.alpha = 255
+            }
             if (pr.fromPlayer && pr.pierce > 0) { // #65 pulse lance beam: tail + core layers
                 p.style = Paint.Style.STROKE; p.color = pr.color; p.alpha = 150; p.strokeWidth = pr.radius * 1.1f
                 c.drawLine(pr.x - pr.vx * 0.045f, pr.y - pr.vy * 0.045f, pr.x, pr.y, p)
@@ -2289,10 +2650,24 @@ class GameView(context: Context) : View(context) {
                 c.drawLine(pr.x - pr.vx * 0.03f, pr.y - pr.vy * 0.03f, pr.x, pr.y, p)
                 p.style = Paint.Style.FILL; p.alpha = 255
             }
+            if (pr.fromPlayer && !pr.rocket) { p.color = pr.color; p.alpha = 60; c.drawCircle(pr.x, pr.y, pr.radius * 1.9f, p); p.alpha = 255 } // #677 your shots wear a soft halo
             p.color = pr.color
             c.drawCircle(pr.x, pr.y, pr.radius, p)
             p.color = Color.WHITE
-            c.drawCircle(pr.x, pr.y, pr.radius * 0.45f, p)
+            if (pr.fromPlayer) c.drawCircle(pr.x, pr.y, pr.radius * 0.45f, p)
+            else { // #440 hostile orbs throb — readable in a swarm
+                p.alpha = (170 + 85 * sin(time * 10f + pr.x * 0.1f)).toInt().coerceIn(85, 255)
+                c.drawCircle(pr.x, pr.y, pr.radius * (0.45f + 0.12f * sin(time * 10f + pr.y * 0.1f)), p); p.alpha = 255
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.2f); p.color = pr.color; p.alpha = (60 + 40 * sin(time * 10f + pr.x * 0.1f)).toInt().coerceIn(20, 100); c.drawCircle(pr.x, pr.y, pr.radius * 1.5f, p); p.style = Paint.Style.FILL; p.alpha = 255 // #678 hostile orbs wear a warning ring
+            }
+            if (pr.rocket) { // 🚀 rocket flame + hot nose
+                val ra = atan2(pr.vy, pr.vx)
+                for (tr4 in 1..2) { p.alpha = 64 - tr4 * 18; poly(c, pr.x - cos(ra) * pr.radius * (1.9f + tr4 * 1.5f), pr.y - sin(ra) * pr.radius * (1.9f + tr4 * 1.5f), pr.radius * (0.85f - tr4 * 0.18f), 4, ra + 0.78f + 3.14159f, Color.rgb(249, 115, 22)) } // #480 exhaust ribbon
+                p.alpha = 255
+                poly(c, pr.x - cos(ra) * pr.radius * 1.7f, pr.y - sin(ra) * pr.radius * 1.7f, pr.radius * (0.9f + 0.25f * sin(time * 34f + pr.x)), 4, ra + 0.78f + 3.14159f, Color.rgb(249, 115, 22))
+                p.color = Color.rgb(254, 240, 138); c.drawCircle(pr.x + cos(ra) * pr.radius * 0.5f, pr.y + sin(ra) * pr.radius * 0.5f, pr.radius * 0.42f, p)
+                if (((time * 6f + pr.x * 0.02f).toInt() % 2) == 0) { p.color = Color.rgb(239, 68, 68); c.drawCircle(pr.x - cos(ra) * pr.radius * 1.1f, pr.y - sin(ra) * pr.radius * 1.1f, dp(1.8f), p) } // #679 the rocket's tail light blinks
+            }
         }
 
         // orbit blades
@@ -2314,6 +2689,7 @@ class GameView(context: Context) : View(context) {
                 c.drawArc(RectF(px - bladeR, py - bladeR, px + bladeR, py + bladeR), Math.toDegrees(ba.toDouble()).toFloat() - 50f, 42f, false, p)
                 p.style = Paint.Style.FILL; p.alpha = 255
                 poly(c, bx, by, dp(13f), 3, orbitAngle * 3f + k * 2f, Color.rgb(52, 211, 153))
+                poly(c, bx, by, dp(5f), 4, time * 6f + k * 2f, Color.rgb(167, 243, 208)) // #680 orbit blades spin a bright heart
             }
         }
 
@@ -2330,6 +2706,7 @@ class GameView(context: Context) : View(context) {
         for (g in ghosts) {
             p.color = g.color; p.alpha = (130 * (g.life / 0.34f)).toInt().coerceIn(0, 130)
             poly(c, g.x, g.y, dp(19f), 4, 0.78f, g.color)
+            p.color = Color.WHITE; p.alpha = (70 * (g.life / 0.34f)).toInt().coerceIn(0, 70); c.drawCircle(g.x, g.y, dp(3f), p) // #681 dash ghosts burn bright at the center
         }
         p.alpha = 255
         for (sg in shardGhosts) { // #161 death shard: shrink + fade
@@ -2343,6 +2720,7 @@ class GameView(context: Context) : View(context) {
             p.style = Paint.Style.STROKE; p.strokeWidth = dp(3f) * (r.life / r.maxLife) + 0.5f
             p.color = r.color; p.alpha = (200 * (r.life / r.maxLife)).toInt().coerceIn(0, 200)
             c.drawCircle(r.x, r.y, r.r, p)
+            p.style = Paint.Style.FILL; p.color = r.color; p.alpha = (16 * (r.life / r.maxLife)).toInt().coerceIn(0, 16); c.drawCircle(r.x, r.y, r.r, p) // #602 rings carry a whisper of fill
         }
         p.style = Paint.Style.FILL; p.alpha = 255
 
@@ -2355,6 +2733,8 @@ class GameView(context: Context) : View(context) {
                 p.alpha = if (e.type == 5) 255 else 150
                 poly(c, ax, ay, if (e.type == 5) dp(13f) else dp(8f), 3, atan2(e.y - ay, e.x - ax) + 1.57f, if (e.type == 5) Color.rgb(244, 114, 182) else enemyColor(e.type))
                 p.alpha = 255
+                if (e.type == 5) { p.style = Paint.Style.STROKE; p.strokeWidth = dp(2f); p.color = Color.rgb(244, 114, 182); p.alpha = (90 + 70 * sin(time * 6f)).toInt().coerceIn(20, 160); c.drawCircle(ax, ay, dp(17f), p); p.style = Paint.Style.FILL; p.alpha = 255 } // #596 the Warden's off-screen arrow wears a halo
+                if (e.type == 11) { p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.8f); p.color = Color.rgb(250, 204, 21); p.alpha = (80 + 60 * sin(time * 5f)).toInt().coerceIn(20, 140); c.drawCircle(ax, ay, dp(13f), p); p.style = Paint.Style.FILL; p.alpha = 255 } // #606 the Gnome's arrow wears a gold halo — follow the money
                 arrowsDrawn++
             }
         }
@@ -2364,23 +2744,116 @@ class GameView(context: Context) : View(context) {
             val chCol = CHARS[save.selectedChar].color
             val blink = invulnT > 0 && (time * 18f).toInt() % 2 == 0
             val spawnSc = if (spawnAnimT > 0) 0.25f + 0.75f * (1f - spawnAnimT / 0.55f) else 1f // #159 materialize scale-in
-            if (combo >= 25) for (k in 0 until 6) { // #240 kill-streak fire aura at combo 25+
+            if (combo >= 25) for (k in 0 until 6) { // kill-streak fire aura — orbiting orbs now, NOT triangles (Nathan's call, v2.3)
                 val fa = k * 1.047f + time * 1.8f; val fh = dp(13f) + dp(6f) * sin(time * 13f + k * 2.1f)
-                poly(c, px + cos(fa) * dp(31f), py + sin(fa) * dp(31f) - fh * 0.4f, fh * 0.5f, 3, fa + 1.57f, if (k % 2 == 0) Color.rgb(249, 115, 22) else Color.rgb(250, 204, 21))
+                p.color = if (k % 2 == 0) Color.rgb(249, 115, 22) else Color.rgb(250, 204, 21); p.alpha = 200
+                c.drawCircle(px + cos(fa) * dp(31f), py + sin(fa) * dp(31f) - fh * 0.4f, fh * 0.42f, p); p.alpha = 255
+                p.color = if (k % 2 == 0) Color.rgb(249, 115, 22) else Color.rgb(250, 204, 21); p.alpha = 60 // #610 aura orbs trail a fading echo
+                c.drawCircle(px + cos(fa - 0.35f) * dp(31f), py + sin(fa - 0.35f) * dp(31f) - fh * 0.4f, fh * 0.3f, p); p.alpha = 255
             }
             val recOff = if (recoilT > 0) dp(3.5f) * (recoilT / 0.09f) else 0f // #184 muzzle recoil
             val bpx = px - cos(lastAim) * recOff; val bpy = py - sin(lastAim) * recOff + sin(time * 2.4f) * dp(1.6f) // #406 hover bob
+            if (xpNext > 0 && xp.toFloat() / xpNext > 0.95f) { p.style = Paint.Style.STROKE; p.strokeWidth = dp(2f); p.color = Color.rgb(250, 204, 21); p.alpha = (110 + 80 * sin(time * 8f)).toInt().coerceIn(30, 190); c.drawCircle(bpx, bpy, dp(38f) * spawnSc, p); p.style = Paint.Style.FILL; p.alpha = 255 } // #621 a level-up is about to pop
             p.color = chCol; p.alpha = (55 * spawnSc).toInt()
             c.drawCircle(bpx, bpy, dp(34f) * spawnSc, p); p.alpha = 255
+            if (spawnAnimT > 0) { // #456 materialize shockring
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(2.5f); p.color = chCol
+                p.alpha = (200 * (spawnAnimT / 0.55f)).toInt().coerceIn(0, 200)
+                c.drawCircle(px, py, dp(52f) * (1f - spawnAnimT / 0.55f) + dp(10f), p)
+                p.style = Paint.Style.FILL; p.alpha = 255
+            }
             // #407 soft ground shadow under the hero
             p.color = Color.BLACK; p.alpha = 95
             c.drawOval(RectF(px - dp(17f), py + dp(19f), px + dp(17f), py + dp(28f)), p); p.alpha = 255
-            if (!blink) { // #401 layered armor plate + bright rim under the gem body
+            if (!blink) { // 🐢 TURTLE WITH JETS — every hero is a turtle (v2.3.1), shell tinted by hero color
+                val ta = lastAim
+                val spdF = 0.75f + 0.5f * min(1f, hyp(pvx, pvy) / 300f)
+                for (s in -1..1 step 2) { // rear jet pods + flames (flames swell with speed)
+                    val jx = bpx - cos(ta) * dp(17f) + cos(ta + 1.57f) * dp(10f) * s
+                    val jy = bpy - sin(ta) * dp(17f) + sin(ta + 1.57f) * dp(10f) * s
+                    val fl = (dp(8f) + dp(3f) * sin(time * 29f + s * 2f)) * spdF
+                    poly(c, jx - cos(ta) * fl * 0.9f, jy - sin(ta) * fl * 0.9f, fl * 0.62f, 4, ta + 0.78f + 3.14159f, Color.rgb(249, 115, 22))
+                    poly(c, jx - cos(ta) * fl * 0.5f, jy - sin(ta) * fl * 0.5f, fl * 0.34f, 4, ta + 0.78f + 3.14159f, Color.rgb(254, 240, 138))
+                    p.color = Color.rgb(71, 85, 105); c.drawCircle(jx, jy, dp(5.5f), p)
+                    p.color = Color.rgb(148, 163, 184); c.drawCircle(jx, jy, dp(3f), p)
+                    p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.4f); p.color = Color.rgb(203, 213, 225); p.alpha = 190 // #477 metal band on the pod
+                    c.drawCircle(jx, jy, dp(5.5f), p)
+                    p.style = Paint.Style.FILL; p.alpha = 255
+                    p.color = Color.rgb(249, 115, 22); p.alpha = (140 + 90 * sin(time * 26f + s)).toInt().coerceIn(50, 230) // #477 nozzle glow
+                    c.drawCircle(jx - cos(ta) * dp(6.5f), jy - sin(ta) * dp(6.5f), dp(2.4f), p); p.alpha = 255
+                }
+                for (fx2 in -1..1 step 2) for (fy2 in -1..1 step 2) { // flippers, paddle wiggle
+                    val wig = sin(time * 6f + (fx2 + fy2) * 1.7f) * dp(1.6f)
+                    p.color = shade(chCol, 0.75f)
+                    c.drawOval(RectF(bpx + fx2 * dp(15f) - dp(6f) + wig, bpy + fy2 * dp(13f) - dp(3.5f), bpx + fx2 * dp(15f) + dp(6f) + wig, bpy + fy2 * dp(13f) + dp(3.5f)), p)
+                    p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.1f); p.color = shade(chCol, 0.5f); p.alpha = 150 // #478 flipper seam
+                    c.drawLine(bpx + fx2 * dp(15f) - dp(3.6f) + wig, bpy + fy2 * dp(13f), bpx + fx2 * dp(15f) + dp(3.6f) + wig, bpy + fy2 * dp(13f), p)
+                    p.style = Paint.Style.FILL; p.alpha = 255
+                }
+                // shell: dark rim, green dome, drifting plate arcs
+                p.color = shade(chCol, 0.42f); c.drawCircle(bpx, bpy, dp(21f) * spawnSc, p)
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(2f); p.color = shade(chCol, 0.28f); p.alpha = 210 // #475 crisp shell outline
+                c.drawCircle(bpx, bpy, dp(21f) * spawnSc, p); p.style = Paint.Style.FILL; p.alpha = 255
+                p.color = chCol; c.drawCircle(bpx, bpy, dp(17.5f) * spawnSc, p)
+                // #473 shell scute plates: seams from a center plate, plus #475 rim studs
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.3f); p.color = shade(chCol, 0.55f); p.alpha = 170
+                for (k in 0 until 6) { val sa3 = k * 1.047f + 0.52f; c.drawLine(bpx + cos(sa3) * dp(8.5f), bpy + sin(sa3) * dp(8.5f), bpx + cos(sa3) * dp(15.8f), bpy + sin(sa3) * dp(15.8f), p) }
+                p.style = Paint.Style.FILL; p.alpha = 255
+                poly(c, bpx, bpy, dp(8.5f) * spawnSc, 6, 0.52f, shade(chCol, 0.85f))
+                p.color = shade(chCol, 1.35f)
+                for (k in 0 until 8) { val sa4 = time * 0.6f + k * 0.785f; c.drawCircle(bpx + cos(sa4) * dp(19.2f), bpy + sin(sa4) * dp(19.2f), dp(1.3f), p) }
+                // #474 dome gloss
+                p.color = Color.WHITE; p.alpha = 46
+                c.drawOval(RectF(bpx - dp(11f), bpy - dp(12.5f), bpx - dp(1f), bpy - dp(6.5f)), p); p.alpha = 255
+                // #504 shine sweep circles the shell gem
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.6f); p.color = Color.WHITE; p.alpha = 110
+                c.drawArc(RectF(bpx - dp(10.5f), bpy - dp(10.5f), bpx + dp(10.5f), bpy + dp(10.5f)), time * 150f, 65f, false, p)
+                p.style = Paint.Style.FILL; p.alpha = 255
+                if (dashCharges < dashMaxCharges) { // #519 dash recharge arc rings the shell
+                    val dprog = 1f - (dashRechargeT / dashCdMax).coerceIn(0f, 1f)
+                    p.style = Paint.Style.STROKE; p.strokeWidth = dp(2f); p.color = Color.rgb(34, 211, 238); p.alpha = 170
+                    c.drawArc(RectF(bpx - dp(24.5f), bpy - dp(24.5f), bpx + dp(24.5f), bpy + dp(24.5f)), -90f, 360f * dprog, false, p)
+                    p.style = Paint.Style.FILL; p.alpha = 255
+                }
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.6f); p.color = shade(chCol, 1.45f); p.alpha = 170
+                c.drawArc(RectF(bpx - dp(12f), bpy - dp(12f), bpx + dp(12f), bpy + dp(12f)), time * 40f, 110f, false, p)
+                c.drawArc(RectF(bpx - dp(12f), bpy - dp(12f), bpx + dp(12f), bpy + dp(12f)), time * 40f + 180f, 110f, false, p)
+                p.style = Paint.Style.FILL; p.alpha = 255
+                // 💎 the gem on the shell
+                poly(c, bpx, bpy, dp(8.6f) * spawnSc * (1f + 0.1f * sin(time * 5f)), 4, 0.78f, shade(chCol, 0.4f))
+                poly(c, bpx, bpy, dp(7f) * spawnSc * (1f + 0.1f * sin(time * 5f)), 4, 0.78f, if (waveClearT > 0) Color.rgb((127 + 127 * sin(time * 9f)).toInt().coerceIn(0, 255), (127 + 127 * sin(time * 9f + 2.1f)).toInt().coerceIn(0, 255), (127 + 127 * sin(time * 9f + 4.2f)).toInt().coerceIn(0, 255)) else Color.rgb(34, 211, 238)) // #494 victory rainbow gem
+                if (wave % 5 == 0) poly(c, bpx, bpy, dp(3.6f) * spawnSc, 4, -time * 3f, Color.rgb(250, 204, 21)) // #736 a gold heart spins in the shell gem on boss waves
+                poly(c, bpx, bpy, dp(3.4f) * spawnSc, 4, 0.78f, Color.rgb(236, 254, 255))
+                // head + eyes, leading the aim
+                val hx2 = bpx + cos(ta) * dp(20f); val hy2 = bpy + sin(ta) * dp(20f)
+                p.color = shade(chCol, 0.75f); c.drawCircle(hx2, hy2, dp(8.6f) * spawnSc, p)
+                p.color = shade(chCol, 1.12f); c.drawCircle(hx2, hy2, dp(7.4f) * spawnSc, p)
+                for (s in -1..1 step 2) {
+                    val ex = hx2 + cos(ta) * dp(3.4f) + cos(ta + 1.57f) * dp(3.6f) * s
+                    val ey = hy2 + sin(ta) * dp(3.4f) + sin(ta + 1.57f) * dp(3.6f) * s
+                    if ((time % 4.3f) < 0.11f) { // #479 every turtle blinks
+                        p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.3f); p.color = Color.rgb(8, 2, 18)
+                        c.drawLine(ex - dp(1.7f), ey, ex + dp(1.7f), ey, p); p.style = Paint.Style.FILL
+                    } else {
+                        p.color = Color.rgb(8, 2, 18); c.drawCircle(ex, ey, dp(1.9f), p)
+                        p.color = Color.WHITE; c.drawCircle(ex + dp(0.6f), ey - dp(0.6f), dp(0.8f), p)
+                    }
+                }
+                // #476 nostrils + smile + cheek
+                p.color = Color.rgb(8, 2, 18)
+                for (s in -1..1 step 2) c.drawCircle(hx2 + cos(ta) * dp(6.8f) + cos(ta + 1.57f) * dp(1.9f) * s, hy2 + sin(ta) * dp(6.8f) + sin(ta + 1.57f) * dp(1.9f) * s, dp(0.75f), p)
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.2f)
+                c.drawArc(RectF(hx2 - dp(4.4f), hy2 - dp(4.4f), hx2 + dp(4.4f), hy2 + dp(4.4f)), ta * 57.2958f - 55f, 110f, false, p)
+                p.style = Paint.Style.FILL
+                p.color = Color.rgb(244, 114, 182); p.alpha = 55
+                c.drawCircle(hx2 - cos(ta + 1.57f) * dp(5.2f) - cos(ta) * dp(1.5f), hy2 - sin(ta + 1.57f) * dp(5.2f) - sin(ta) * dp(1.5f), dp(2.3f), p); p.alpha = 255
+            }
+            if (!blink && save.selectedChar == -1) { // #401 RETIRED v2.3.1 — every hero is a turtle now
                 val prot = sin(time * 2.2f) * 0.14f + 0.78f
                 poly(c, bpx, bpy, dp(24.5f) * spawnSc, 4, prot, shade(chCol, 0.5f))
                 poly(c, bpx, bpy, dp(24.5f) * spawnSc, 4, prot, shade(chCol, 1.35f), false)
             }
-            if (!blink) {
+            if (!blink && save.selectedChar == -1) { // gem-ship body RETIRED v2.3.1
                 val rot = sin(time * 2.2f) * 0.14f
                 if (dashT > 0) { // #164 stretch along the dash vector
                     c.save(); c.translate(bpx, bpy)
@@ -2398,16 +2871,17 @@ class GameView(context: Context) : View(context) {
                     poly(c, bpx, bpy, dp(5.5f) * spawnSc * corePulse, 4, rot + 0.78f, coreCol)
                 }
             }
-            // #403 visor slit + glint ride the aim direction
-            val visX = bpx + cos(lastAim) * dp(12.5f); val visY = bpy + sin(lastAim) * dp(12.5f)
-            p.color = Color.rgb(8, 2, 18); c.drawCircle(visX, visY, dp(4.6f), p)
-            p.color = Color.WHITE; c.drawCircle(visX + cos(lastAim) * dp(1.6f), visY + sin(lastAim) * dp(1.6f), dp(1.7f), p)
-            poly(c, bpx + cos(lastAim) * dp(22.5f), bpy + sin(lastAim) * dp(22.5f), dp(4.2f), 4, lastAim + 0.78f, shade(chCol, 0.75f)) // #408 barrel nub
+            if (save.selectedChar == -1) { // #403 visor RETIRED v2.3.1 — turtles have real eyes
+                val visX = bpx + cos(lastAim) * dp(12.5f); val visY = bpy + sin(lastAim) * dp(12.5f)
+                p.color = Color.rgb(8, 2, 18); c.drawCircle(visX, visY, dp(4.6f), p)
+                p.color = Color.WHITE; c.drawCircle(visX + cos(lastAim) * (dp(1.6f) + dp(0.5f) * sin(time * 3f)), visY + sin(lastAim) * (dp(1.6f) + dp(0.5f) * sin(time * 3f)), dp(1.7f), p) // #431 living glint
+                poly(c, bpx + cos(lastAim) * dp(22.5f), bpy + sin(lastAim) * dp(22.5f), dp(4.2f), 4, lastAim + 0.78f, shade(chCol, 0.75f)) // #408 barrel nub
+            }
             // #404 thruster flame opposite the move vector
             val mvx2 = joyDx + padDx + (if (keyRight) 1f else 0f) - (if (keyLeft) 1f else 0f)
             val mvy2 = joyDy + padDy + (if (keyDown) 1f else 0f) - (if (keyUp) 1f else 0f)
-            if (hyp(mvx2, mvy2) > 0.25f) {
-                val ma = atan2(mvy2, mvx2); val flick = dp(5.5f) + dp(2.5f) * sin(time * 31f)
+            if (hyp(mvx2, mvy2) > 0.25f && save.selectedChar == -1) { // RETIRED v2.3.1 — flames live in the jet pods
+                val ma = atan2(mvy2, mvx2); val flick = (dp(5.5f) + dp(2.5f) * sin(time * 31f)) * (0.8f + 0.45f * min(1f, hyp(pvx, pvy) / 320f)) // #429 flame grows with speed
                 poly(c, bpx - cos(ma) * dp(25f), bpy - sin(ma) * dp(25f), flick, 3, ma - 1.57f, Color.rgb(249, 115, 22))
                 poly(c, bpx - cos(ma) * dp(23f), bpy - sin(ma) * dp(23f), flick * 0.55f, 3, ma - 1.57f, Color.rgb(254, 240, 138))
             }
@@ -2418,28 +2892,38 @@ class GameView(context: Context) : View(context) {
                 p.style = Paint.Style.STROKE; p.strokeWidth = dp(2f); p.color = Color.rgb(250, 204, 21); p.alpha = 150
                 c.drawCircle(bpx, bpy, dp(33f) + dp(1.5f) * sin(time * 3f), p)
                 p.style = Paint.Style.FILL; p.alpha = 255
+                (0 until 4).forEach { k -> val ha2 = k * 1.5708f + time * 1.1f; poly(c, bpx + cos(ha2) * (dp(33f) + dp(1.5f) * sin(time * 3f)), bpy + sin(ha2) * (dp(33f) + dp(1.5f) * sin(time * 3f)), dp(2.6f), 4, ha2, Color.rgb(250, 204, 21)) } // #682 gem studs ride the evolution halo
             }
             // #410 signature detail per hero
             when (save.selectedChar) {
-                0 -> poly(c, bpx, bpy - dp(13f), dp(4.5f), 4, 0.78f, Color.rgb(254, 240, 138), false) // Guardian crest
-                1 -> for (s in -1..1 step 2) poly(c, bpx - cos(lastAim) * dp(16f) + cos(lastAim + 1.57f) * dp(11f) * s, bpy - sin(lastAim) * dp(16f) + sin(lastAim + 1.57f) * dp(11f) * s, dp(6f), 3, lastAim - 1.57f + 0.5f * s, shade(chCol, 1.2f)) // Swift fins
-                2 -> { p.color = Color.rgb(20, 8, 4); for (rx in -1..1 step 2) for (ry in -1..1 step 2) c.drawCircle(bpx + rx * dp(13f), bpy + ry * dp(13f), dp(1.9f), p) } // Bulwark rivets
-                3 -> poly(c, bpx, bpy - dp(24f) - dp(2f) * sin(time * 12f), dp(6.5f), 3, -1.57f + 0.2f * sin(time * 9f), Color.rgb(249, 115, 22)) // Pyro flame crest
+                0 -> { poly(c, bpx, bpy - dp(13f), dp(4.5f), 4, 0.78f, Color.rgb(254, 240, 138), false) // Guardian crest
+                    p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.2f); p.color = Color.rgb(254, 240, 138); p.alpha = (60 + 40 * sin(time * 3.4f)).toInt().coerceIn(20, 100); c.drawCircle(bpx, bpy - dp(13f), dp(8f), p); p.style = Paint.Style.FILL; p.alpha = 255 } // #555 the crest wears a halo
+                1 -> { if ((pvx * pvx + pvy * pvy) > 9000f) { // #557 Swift leaves speed streaks at pace
+                    val spd = hyp(pvx, pvy); val ux = pvx / spd; val uy = pvy / spd
+                    p.style = Paint.Style.STROKE; p.strokeWidth = dp(2f); p.color = Color.rgb(250, 204, 21); p.alpha = 120
+                    for (k in -1..1) { val ox2 = -uy * k * dp(9f); val oy2 = ux * k * dp(9f); val sx2 = bpx - ux * dp(24f) + ox2; val sy2 = bpy - uy * dp(24f) + oy2; c.drawLine(sx2, sy2, sx2 - ux * dp(13f + 4f * sin(time * 17f + k)), sy2 - uy * dp(13f + 4f * sin(time * 17f + k)), p) }
+                    p.style = Paint.Style.FILL; p.alpha = 255 } }
+                2 -> { p.color = Color.rgb(20, 8, 4); for (rx in -1..1 step 2) for (ry in -1..1 step 2) c.drawCircle(bpx + rx * dp(13f), bpy + ry * dp(13f), dp(1.9f), p)
+                    p.color = Color.rgb(251, 146, 60); p.alpha = (50 + 35 * sin(time * 2.8f)).toInt().coerceIn(15, 85); for (rx in -1..1 step 2) for (ry in -1..1 step 2) c.drawCircle(bpx + rx * dp(13f), bpy + ry * dp(13f), dp(0.9f), p); p.alpha = 255 } // Bulwark rivets, #556 with a warm core glow
+                3 -> { poly(c, bpx, bpy - dp(24f) - dp(2f) * sin(time * 12f), dp(6.5f), 3, -1.57f + 0.2f * sin(time * 9f), Color.rgb(249, 115, 22)) // Pyro flame crest
+                    for (k in 0 until 2) { val ea2 = time * 1.7f + k * 3.1f; p.color = Color.rgb(251, 146, 60); p.alpha = 150; c.drawCircle(bpx + cos(ea2) * dp(19f), bpy - dp(6f) + sin(ea2 * 1.2f) * dp(12f), dp(1.9f), p) }; p.alpha = 255 } // #554 ember motes orbit Pyro
                 4 -> { // Cryo snowflake spokes
                     p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.6f); p.color = Color.rgb(219, 234, 254)
                     for (k in 0 until 3) { val sa = time * 1.5f + k * 1.047f; c.drawLine(bpx - cos(sa) * dp(8f), bpy - sin(sa) * dp(8f), bpx + cos(sa) * dp(8f), bpy + sin(sa) * dp(8f), p) }
                     p.style = Paint.Style.FILL
+                    for (k in 0 until 2) { val fa = time * 0.9f + k * 2.4f; poly(c, bpx + cos(fa) * dp(20f), bpy + sin(fa * 1.3f) * dp(16f), dp(2.2f), 4, fa, Color.rgb(219, 234, 254)) } // #553 snow motes drift around Cryo
                 }
+                5 -> poly(c, bpx, bpy, dp(3.4f), 4, time * 1.8f, Color.WHITE) // #558 the 💎N🎱 gem throws a rotating glint
             }
             // #409 hurt flash washes the body right after a hit
             if (hurtFlash > 0.45f) {
                 p.alpha = ((hurtFlash - 0.45f) * 380f).toInt().coerceIn(0, 200)
-                poly(c, bpx, bpy, dp(21f) * spawnSc, 4, 0.78f, Color.WHITE)
+                c.drawCircle(bpx, bpy, dp(21f) * spawnSc, p) // v2.3.1: hurt flash is a shell flash now
                 p.alpha = 255
             }
             // #54 rotating facet shine
             val shineA = time * 2.6f
-            poly(c, px + cos(shineA) * dp(10f), py + sin(shineA) * dp(10f), dp(4f), 4, shineA, Color.WHITE)
+            if (save.selectedChar == -1) poly(c, px + cos(shineA) * dp(10f), py + sin(shineA) * dp(10f), dp(4f), 4, shineA, Color.WHITE) // RETIRED v2.3.1 — the shell gem has its own glint
             if (invulnT > 0 && dashT <= 0) { // #69 i-frame shield ring
                 p.style = Paint.Style.STROKE; p.strokeWidth = dp(2f); p.color = Color.rgb(165, 243, 252)
                 p.alpha = (120 + 80 * sin(time * 16f)).toInt().coerceIn(40, 200)
@@ -2451,6 +2935,11 @@ class GameView(context: Context) : View(context) {
                 p.style = Paint.Style.STROKE; p.strokeWidth = dp(2.5f); p.color = Color.rgb(147, 197, 253)
                 p.alpha = if (regenActive) (150 + 85 * sin(time * 7f)).toInt().coerceIn(65, 235) else 170
                 c.drawArc(RectF(px - dp(30f), py - dp(30f), px + dp(30f), py + dp(30f)), -90f, 360f * (shieldHp / (shieldLvl * 20f)), false, p)
+                if (lastHurtT > 0.45f) { p.strokeWidth = dp(4f); p.color = Color.WHITE; p.alpha = (160 * (lastHurtT / 0.9f)).toInt().coerceIn(0, 160); c.drawArc(RectF(px - dp(30f), py - dp(30f), px + dp(30f), py + dp(30f)), lastHurtAngle * 57.2958f - 20f, 40f, false, p); p.strokeWidth = dp(2.5f); p.color = Color.rgb(147, 197, 253) } // #688 the shield flashes where the hit landed
+                p.strokeWidth = dp(1.4f); p.alpha = 90 // #535 counter-rotating dashed shell
+                for (k in 0 until 3) c.drawArc(RectF(px - dp(34f), py - dp(34f), px + dp(34f), py + dp(34f)), -time * 50f + k * 120f, 55f, false, p)
+                p.style = Paint.Style.FILL; poly(c, px + cos(-time * 0.9f) * dp(30f), py + sin(-time * 0.9f) * dp(30f), dp(3f), 4, time * 2f, Color.rgb(219, 234, 254)); p.style = Paint.Style.STROKE // #649 a glint rides the shield rim
+                if (regenActive) { p.style = Paint.Style.FILL; p.color = Color.rgb(147, 197, 253); p.alpha = (16 + 10 * sin(time * 7f)).toInt().coerceIn(6, 26); c.drawCircle(px, py, dp(30f), p) } // #611 a regrowing shield fills with light
                 p.style = Paint.Style.FILL; p.alpha = 255
                 if (regenActive) for (k in 0 until 3) { val sa = time * 2.6f + k * 2.094f; poly(c, px + cos(sa) * dp(30f), py + sin(sa) * dp(30f), dp(3.4f), 4, sa, Color.rgb(191, 219, 254)) }
             }
@@ -2459,11 +2948,13 @@ class GameView(context: Context) : View(context) {
                 val arcR = dp(46f)
                 c.drawArc(RectF(px - arcR, py - arcR, px + arcR, py + arcR), lastHurtAngle * 57.2958f - 26f, 52f, false, p)
                 p.style = Paint.Style.FILL; p.alpha = 255
+                poly(c, px + cos(lastHurtAngle) * arcR, py + sin(lastHurtAngle) * arcR, dp(4f), 4, time * 3f, Color.rgb(254, 202, 202)) // #651 the hurt arc points with a hot head
             }
             if (save.selectedChar == 4) { // #128 Cryo aura ring
                 p.style = Paint.Style.STROKE; p.strokeWidth = dp(2f); p.color = Color.rgb(147, 197, 253); p.alpha = 70
                 c.drawCircle(px, py, dp(130f) * (1f + 0.02f * sin(time * 2f)), p)
                 p.style = Paint.Style.FILL; p.alpha = 255
+                (0 until 5).forEach { k -> val sa5 = time * 0.7f + k * 2.4f; p.color = Color.WHITE; p.alpha = (40 + 30 * sin(time * 2f + k * 1.9f)).toInt().coerceIn(10, 70); c.drawCircle(px + cos(sa5) * dp(96f), py + sin(sa5 * 1.3f) * dp(96f), dp(1.7f), p) }; p.alpha = 255 // #683 snow sparkles drift inside the Cryo aura
             }
             if (stillT > 0.15f) { // #137 focus charge ring
                 p.style = Paint.Style.STROKE; p.strokeWidth = dp(2.5f)
@@ -2471,19 +2962,27 @@ class GameView(context: Context) : View(context) {
                 p.alpha = if (focusReady) 220 else 120
                 c.drawArc(RectF(px - dp(24f), py - dp(24f), px + dp(24f), py + dp(24f)), -90f, 360f * min(1f, stillT / 1.2f), false, p)
                 p.style = Paint.Style.FILL; p.alpha = 255
+                if (focusReady) for (k in 0 until 2) { val fa9 = time * 3.4f + k * 3.1416f; poly(c, px + cos(fa9) * dp(24f), py + sin(fa9) * dp(24f), dp(2.6f), 4, fa9, Color.rgb(254, 240, 138)) } // #650 a charged focus sparkles
             }
             if (muzzleT > 0) { // muzzle flash star at the barrel
                 val mx = px + cos(lastAim) * dp(26f); val my = py + sin(lastAim) * dp(26f)
                 poly(c, mx, my, dp(9f), 4, time * 22f, Color.rgb(254, 240, 138))
+                poly(c, mx, my, dp(4f), 4, -time * 30f, Color.WHITE) // #627 the flash burns white at the core
             }
             if (dashT > 0) { // dash ring
                 p.style = Paint.Style.STROKE; p.strokeWidth = dp(2.5f); p.color = chCol; p.alpha = 160
                 c.drawCircle(px, py, dp(30f) + (0.16f - dashT) * dp(120f), p)
+                p.strokeWidth = dp(1.4f); p.alpha = 90; c.drawCircle(px, py, (dp(30f) + (0.16f - dashT) * dp(120f)) * 0.72f, p) // #623 the dash ring echoes inside itself
                 p.style = Paint.Style.FILL; p.alpha = 255
             }
             // #34 level badge
             p.color = Color.rgb(124, 58, 237)
             c.drawCircle(px + dp(17f), py + dp(15f), dp(9f), p)
+            if (level >= 10) { // #430 gold ring for double-digit captains
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.6f); p.color = Color.rgb(250, 204, 21)
+                c.drawCircle(px + dp(17f), py + dp(15f), dp(10f), p); p.style = Paint.Style.FILL
+            }
+            if (xpNext > 0 && xp.toFloat() / xpNext > 0.9f) { p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.8f); p.color = Color.rgb(250, 204, 21); p.alpha = (120 + 100 * sin(time * 7f)).toInt().coerceIn(20, 220); c.drawCircle(px + dp(17f), py + dp(15f), dp(11.5f), p); p.style = Paint.Style.FILL; p.alpha = 255 } // #593 your level badge burns gold near a level-up
             txt(c, "$level", px + dp(17f), py + dp(18.5f), dp(10f), Color.WHITE, true)
         }
 
@@ -2492,15 +2991,38 @@ class GameView(context: Context) : View(context) {
             val frac = (m.t / 0.8f).coerceIn(0f, 1f)
             p.color = Color.BLACK; p.alpha = (90 + 80 * (1f - frac)).toInt() // #190 shadow grows as it falls
             c.drawCircle(m.x, m.y, dp(26f) + dp(46f) * (1f - frac), p)
+            if (frac < 0.5f) { p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.6f); p.color = Color.rgb(249, 115, 22); p.alpha = (90 * (1f - frac * 2f)).toInt().coerceIn(0, 90); c.drawCircle(m.x, m.y, dp(26f) + dp(46f) * (1f - frac), p); p.style = Paint.Style.FILL; p.alpha = 255 } // #646 the shadow wears a hot rim while it's high
+            if (frac < 0.35f) { // #516 final-approach strobe ring
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(3f); p.color = Color.rgb(239, 68, 68)
+                p.alpha = if (((time * 9f).toInt() % 2) == 0) 220 else 60
+                c.drawCircle(m.x, m.y, dp(30f), p); p.style = Paint.Style.FILL; p.alpha = 255
+            }
+            p.style = Paint.Style.STROKE; p.strokeWidth = dp(2f); p.color = Color.rgb(249, 115, 22); p.alpha = 130 // #599 an inner ring collapses onto the impact point
+            c.drawCircle(m.x, m.y, dp(8f) + dp(40f) * frac, p); p.style = Paint.Style.FILL; p.alpha = 255
             p.style = Paint.Style.STROKE; p.strokeWidth = dp(2.5f); p.color = Color.rgb(249, 115, 22); p.alpha = 200
             c.drawCircle(m.x, m.y, dp(72f) * (1f - frac) + dp(8f), p)
+            for (tk in 0 until 4) { // #441 rotating crosshair ticks
+                val tka = time * 2.4f + tk * 1.571f; val tkr = dp(72f) * (1f - frac) + dp(8f)
+                c.drawLine(m.x + cos(tka) * (tkr - dp(5f)), m.y + sin(tka) * (tkr - dp(5f)), m.x + cos(tka) * (tkr + dp(5f)), m.y + sin(tka) * (tkr + dp(5f)), p)
+            }
             p.style = Paint.Style.FILL; p.alpha = 255
+            p.color = Color.rgb(254, 202, 202); p.alpha = (120 + 100 * sin(time * 10f)).toInt().coerceIn(20, 220); c.drawCircle(m.x, m.y, dp(2.4f), p); p.alpha = 255 // #645 the impact point itself pulses
             if (m.t < 0.4f) {
                 val off = dp(60f) * (m.t / 0.4f); val my2 = m.y - dp(300f) * (m.t / 0.4f)
                 p.color = Color.rgb(249, 115, 22); p.alpha = 90
                 c.drawCircle(m.x + off, my2, dp(20f), p)
                 p.color = Color.rgb(254, 240, 138)
                 c.drawCircle(m.x + off, my2, dp(10f), p); p.alpha = 255
+                for (k in 0 until 2) { // #529 twin flame wisps orbit the falling head
+                    val wa = time * 11f + k * 3.14159f
+                    p.color = Color.rgb(249, 115, 22); p.alpha = 130
+                    c.drawCircle(m.x + off + cos(wa) * dp(13f), my2 + sin(wa) * dp(13f), dp(4.5f), p)
+                }
+                p.alpha = 255
+                p.color = Color.rgb(148, 163, 184); p.alpha = 60 // #489 smoke puffs trail the falling head
+                c.drawCircle(m.x + off + dp(16f), my2 - dp(52f), dp(13f), p)
+                p.alpha = 40
+                c.drawCircle(m.x + off + dp(24f), my2 - dp(96f), dp(17f), p); p.alpha = 255
                 p.style = Paint.Style.STROKE; p.strokeWidth = dp(3f); p.color = Color.rgb(249, 115, 22); p.alpha = 170 // #190 fall streaks
                 c.drawLine(m.x + off, my2 - dp(14f), m.x + off + dp(26f), my2 - dp(120f), p)
                 p.strokeWidth = dp(1.6f); p.alpha = 110
@@ -2513,7 +3035,7 @@ class GameView(context: Context) : View(context) {
         for (pt in particles) {
             p.color = pt.color; p.alpha = (255 * (pt.life / pt.maxLife)).toInt().coerceIn(0, 255)
             if (pt.shape == 1) poly(c, pt.x, pt.y, pt.size * (pt.life / pt.maxLife) + 0.5f, 3, pt.rot + pt.life * 9f, pt.color)
-            else c.drawCircle(pt.x, pt.y, pt.size * (pt.life / pt.maxLife) + 0.5f, p)
+            else { c.drawCircle(pt.x, pt.y, pt.size * (pt.life / pt.maxLife) + 0.5f, p); if (pt.life / pt.maxLife > 0.7f) { p.color = Color.WHITE; p.alpha = 120; c.drawCircle(pt.x, pt.y, pt.size * (pt.life / pt.maxLife) * 0.4f + 0.3f, p) } } // #624 young particles burn bright at the core
         }
         p.alpha = 255
         // crit/elite sparks (4-point stars)
@@ -2521,9 +3043,12 @@ class GameView(context: Context) : View(context) {
             val sr = s.size * (s.life / 0.3f)
             poly(c, s.x, s.y, sr, 4, time * 9f, s.color)
             poly(c, s.x, s.y, sr * 0.45f, 4, time * 9f + 0.78f, Color.WHITE)
+            if (s.life > 0.22f) { p.color = Color.WHITE; p.alpha = 160; c.drawCircle(s.x, s.y, dp(1.2f), p); p.alpha = 255 } // #604 young sparks flash a white core
         }
         // lightning bolts (#84 renderer)
         for (b in bolts) {
+            p.style = Paint.Style.STROKE; p.strokeWidth = dp(7f); p.color = Color.rgb(253, 224, 71); p.alpha = (46 * (b.life / 0.14f)).toInt().coerceIn(0, 46) // #515 soft glow under the bolt
+            c.drawLine(b.x1, b.y1, b.x2, b.y2, p)
             p.style = Paint.Style.STROKE; p.strokeWidth = dp(2.4f); p.color = Color.rgb(253, 224, 71)
             val flick = if (b.life > 0.05f && ((time * 47f + b.x1 * 0.01f).toInt() % 2 == 0)) 0.3f else 1f // #189 flicker
             p.alpha = (230 * (b.life / 0.14f) * flick).toInt().coerceIn(0, 230)
@@ -2537,10 +3062,11 @@ class GameView(context: Context) : View(context) {
             }
             bp.lineTo(b.x2, b.y2)
             c.drawPath(bp, p)
+            p.color = Color.WHITE; p.alpha = (150 * (b.life / 0.14f)).toInt().coerceIn(0, 150); c.drawCircle(b.x2, b.y2, dp(2.2f), p) // #641 bolts strike a white-hot point
             p.style = Paint.Style.FILL; p.alpha = 255
         }
         // #73 vignette corners
-        p.color = Color.BLACK; p.alpha = 30
+        p.color = Color.BLACK; p.alpha = (26 + 8 * sin(time * 0.9f)).toInt().coerceIn(18, 34) // #701 the vignette breathes
         c.drawCircle(0f, 0f, dp(120f), p); c.drawCircle(w, 0f, dp(120f), p)
         c.drawCircle(0f, h, dp(120f), p); c.drawCircle(w, h, dp(120f), p)
         p.alpha = 255
@@ -2568,6 +3094,7 @@ class GameView(context: Context) : View(context) {
             p.alpha = (215 * hurtFlash).toInt().coerceIn(0, 215)
             c.drawRect(0f, 0f, w, h, p)
             p.style = Paint.Style.FILL; p.alpha = 255
+            p.color = Color.WHITE; p.alpha = (90 * hurtFlash).toInt().coerceIn(0, 90); p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.5f); c.drawRect(dp(9f), dp(9f), w - dp(9f), h - dp(9f), p); p.style = Paint.Style.FILL; p.alpha = 255 // #702 a white-hot seam lines the hurt flash
         }
         // #5 + #200 low-HP heartbeat border — full strength, lub-dub double beat
         if (state == State.PLAYING && hp > 0 && hp / maxHp < 0.25f) {
@@ -2579,13 +3106,19 @@ class GameView(context: Context) : View(context) {
             c.drawRect(dp(3f), dp(3f), w - dp(3f), h - dp(3f), p)
             p.alpha = (pulseA * 0.65f).toInt(); p.strokeWidth = dp(2.5f)
             c.drawRect(dp(13f), dp(13f), w - dp(13f), h - dp(13f), p)
+            p.style = Paint.Style.FILL; (0 until 4).forEach { k -> val cxk = if (k % 2 == 0) dp(13f) else w - dp(13f); val cyk = if (k < 2) dp(13f) else h - dp(13f); poly(c, cxk, cyk, dp(5f) * (1f + 0.3f * min(1f, beat)), 4, time * 3f + k * 1.57f, Color.rgb(239, 68, 68)) } // #712 heartbeat diamonds stud the danger frame
             p.style = Paint.Style.FILL; p.alpha = 255
         }
         // #39 last-stand tint
         if (state == State.PLAYING && hp > 0 && hp / maxHp < 0.10f) {
             p.color = Color.rgb(30, 27, 75); p.alpha = (40 + 25 * sin(time * 9f)).toInt().coerceIn(15, 65)
             c.drawRect(0f, 0f, w, h, p); p.alpha = 255
+            p.style = Paint.Style.STROKE; p.strokeWidth = dp(5f); p.color = Color.rgb(248, 113, 113) // #459 heartbeat edge pulse
+            p.alpha = (60 + 55 * sin(time * 7.4f)).toInt().coerceIn(5, 115)
+            c.drawRect(dp(4f), dp(4f), w - dp(4f), h - dp(4f), p)
+            p.style = Paint.Style.FILL; p.alpha = 255
             txt(c, "⚠ LAST STAND ⚠", w / 2, h * 0.16f, dp(15f), Color.rgb(248, 113, 113), true)
+            (0 until 2).forEach { k -> val sx = w / 2 + (if (k == 0) -1f else 1f) * dp(118f); poly(c, sx, h * 0.16f - dp(5f), dp(5f) * (1f + 0.25f * sin(time * 9f)), 4, time * 4f + k * 1.57f, Color.rgb(248, 113, 113)) } // #703 warning diamonds flank LAST STAND
         }
         // #15 HUD dims during boss intro
         if (bossIntroT > 0) {
@@ -2624,10 +3157,13 @@ class GameView(context: Context) : View(context) {
             p.typeface = android.graphics.Typeface.DEFAULT_BOLD; p.textSize = bSize
             var tw3 = 0f; for (ch3 in bTitle) tw3 += p.measureText(ch3.toString()) + spread
             tw3 -= spread
+            roundRect(c, RectF(w / 2 - tw3 / 2 - dp(16f), h * 0.3f - dp(31f), w / 2 + tw3 / 2 + dp(16f), h * 0.3f + dp(13f)), dp(12f), Color.rgb(7, 3, 18), (a * 0.55f).toInt()) // #483 readability pill behind the banner
             var bx3 = w / 2 - tw3 / 2
             p.textAlign = Paint.Align.LEFT; p.color = bCol; p.alpha = a
-            for (ch3 in bTitle) { c.drawText(ch3.toString(), bx3, h * 0.3f, p); bx3 += p.measureText(ch3.toString()) + spread }
+            var li5 = 0 // #536 a shimmer travels the banner letters
+            for (ch3 in bTitle) { p.alpha = (a * (0.72f + 0.28f * sin(time * 6f - li5 * 0.55f))).toInt().coerceIn(0, a); c.drawText(ch3.toString(), bx3, h * 0.3f, p); bx3 += p.measureText(ch3.toString()) + spread; li5++ }
             p.alpha = 255
+            val swx = w / 2 - tw3 / 2 + tw3 * ((time * 0.7f) % 1f); p.color = Color.rgb(250, 204, 21); p.alpha = (a * 0.8f).toInt(); c.drawCircle(swx, h * 0.3f + dp(9f), dp(2.2f), p); p.alpha = 255 // #664 a spark runs the banner's underline
             val sub = when {
                 wave == 1 -> "Survive the storm!"
                 bossWave -> "👑 Warden + ${max(0, toSpawn + enemies.size - 1)} minions — bring it down!"
@@ -2635,38 +3171,48 @@ class GameView(context: Context) : View(context) {
                 else -> "${toSpawn + enemies.size} hostiles inbound"
             }
             txt(c, sub, w / 2, h * 0.3f + dp(34f), dp(15f), Color.WHITE, false, a)
-            if (mutator > 0) txt(c, mutatorTitle(), w / 2, h * 0.3f + dp(58f), dp(14f), Color.rgb(250, 204, 21), true, a)
+            if (bossWave) poly(c, w / 2 - tw3 / 2 - dp(26f), h * 0.3f + dp(30f), dp(4f), 4, time * 4f, Color.rgb(244, 114, 182)) // #729 a pink diamond heralds the Warden's banner
+            if (mutator > 0) txt(c, mutatorTitle(), w / 2, h * 0.3f + dp(58f), dp(14f), Color.rgb(250, 204, 21), true, (a * (0.75f + 0.25f * sin(time * 5f))).toInt().coerceIn(0, a)) // #584 the mutator line pulses
         }
         if (eliteBannerT > 0 && state == State.PLAYING) {
             val a2 = (min(1f, eliteBannerT) * 255).toInt().coerceIn(0, 255)
             txt(c, "⭐ ELITE DOWN ⭐", w / 2, h * 0.2f, dp(22f), Color.rgb(250, 204, 21), true, a2)
+            for (k in 0 until 2) { val sx9 = w / 2 + (if (k == 0) -1f else 1f) * dp(118f); poly(c, sx9, h * 0.2f - dp(7f), dp(4f), 4, time * 4f + k * 1.7f, Color.rgb(250, 204, 21)) } // #660 stars spin at the elite shout's shoulders
+            p.color = Color.rgb(250, 204, 21); p.alpha = (a2 * 0.7f).toInt(); c.drawRect(w / 2 - dp(88f), h * 0.2f + dp(6f), w / 2 + dp(88f), h * 0.2f + dp(8f), p); p.alpha = 255 // #735 a gold rule underlines ELITE DOWN
         }
         if (countT > 0 && state == State.PLAYING) { // #294 big countdown numeral
+            p.style = Paint.Style.STROKE; p.strokeWidth = dp(3f); p.color = CHARS[save.selectedChar].color // #449 countdown pulse ring, #525 in your hero's color
+            p.alpha = (160 * (countT % 0.5f) / 0.5f).toInt().coerceIn(0, 160)
+            c.drawCircle(w / 2, h * 0.40f - dp(22f), dp(30f) + dp(26f) * (1f - (countT % 0.5f) / 0.5f), p)
+            p.style = Paint.Style.FILL; p.alpha = 255
+            for (k in 0 until 4) { val ta2 = k * 1.5708f + time * 1.2f; poly(c, w / 2 + cos(ta2) * dp(52f), h * 0.40f - dp(20f) + sin(ta2) * dp(52f), dp(3.4f), 4, ta2, CHARS[save.selectedChar].color) } // #619 ticks orbit the countdown
+            (0 until 4).forEach { k -> val ta3 = k * 1.5708f - time * 1.2f; poly(c, w / 2 + cos(ta3) * dp(66f), h * 0.40f - dp(20f) + sin(ta3) * dp(66f), dp(2.4f), 4, ta3, Color.rgb(250, 204, 21)) } // #728 gold ticks counter-orbit the countdown
+            txt(c, "$countStage", w / 2, h * 0.40f, dp(76f), CHARS[save.selectedChar].color, true, 46) // #591 echo numeral behind the count
             txt(c, "$countStage", w / 2, h * 0.40f, dp(64f), Color.rgb(250, 204, 21), true)
         }
         if (resumeT > 0) { // #391 resume countdown numeral
             val rs = ((resumeT / 0.5f) + 0.999f).toInt().coerceIn(1, 3)
             txt(c, "$rs", w / 2, h * 0.40f, dp(64f), Color.rgb(52, 211, 153), true)
-            txt(c, "GET READY…", w / 2, h * 0.40f + dp(52f), dp(16f), Color.WHITE, true)
+            txt(c, "GET READY…", w / 2, h * 0.40f + dp(52f), dp(16f), Color.WHITE, true, (170 + 80 * sin(time * 8f)).toInt().coerceIn(90, 250)) // #592 GET READY pulses
         }
         if (bossIntroT > 0 && state == State.PLAYING) { // #241 boss intro letterbox bars
             val bf2 = if (bossIntroT > 1.6f) ((2f - bossIntroT) / 0.4f).coerceIn(0f, 1f) else (bossIntroT / 0.5f).coerceIn(0f, 1f)
             p.color = Color.BLACK; p.alpha = 255
             c.drawRect(0f, 0f, w, dp(48f) * bf2, p)
             c.drawRect(0f, h - dp(48f) * bf2, w, h, p)
+            p.color = Color.rgb(220, 38, 38); p.alpha = (200 * bf2).toInt() // #531 red edge lines on the letterbox
+            c.drawRect(0f, dp(48f) * bf2, w, dp(48f) * bf2 + dp(2f), p)
+            c.drawRect(0f, h - dp(48f) * bf2 - dp(2f), w, h - dp(48f) * bf2, p); p.alpha = 255
         }
         if (waveClearT > 0 && state == State.PLAYING) {
             val a3 = (min(1f, waveClearT) * 255).toInt().coerceIn(0, 255)
             txt(c, "✔ WAVE $waveClearedNum CLEAR!  +$waveClearBonus", w / 2, h * 0.38f, dp(19f), Color.rgb(52, 211, 153), true, a3)
-            val sweepX = w * (1f - waveClearT / 1.6f) // #197 banner sweep band
-            p.color = Color.rgb(52, 211, 153); p.alpha = 26
-            c.drawRect(sweepX - dp(30f), 0f, sweepX + dp(30f), h, p); p.alpha = 255
-            for (i in 0 until 8) { // #218 sparkles riding the sweep
-                val sy = ((i * 0.618f + (time * 0.35f + i * 0.13f) % 0.31f) % 1f) * h
-                p.alpha = 150
-                poly(c, sweepX + sin(time * 3f + i * 2f) * dp(20f), sy, dp(4.5f), 4, time * 4f + i, Color.rgb(167, 243, 208))
-            }
-            p.alpha = 255
+            p.color = Color.rgb(250, 204, 21); p.alpha = (a3 * 0.8f).toInt() // #566 gold underline sweeps the clear text
+            c.drawRect(w / 2 - dp(120f) * (waveClearT / 1.6f).coerceIn(0f, 1f), h * 0.38f + dp(8f), w / 2 + dp(120f) * (waveClearT / 1.6f).coerceIn(0f, 1f), h * 0.38f + dp(10.5f), p); p.alpha = 255
+            (0 until 2).forEach { k -> val sx2 = w / 2 + (if (k == 0) -1f else 1f) * dp(196f); poly(c, sx2, h * 0.38f - dp(6f), dp(6f), 4, time * 5f + k * 2.1f, Color.rgb(250, 204, 21)) } // #704 gold stars spin beside the CLEAR! shout
+            // #197/#218 REMOVED in v2.4 (Nathan's call): the full-height green sweep band
+            // read as a weird opaque bar sliding across the screen. The CLEAR! text
+            // and the #493 sparkle rain carry the moment now.
         }
     }
 
@@ -2674,7 +3220,7 @@ class GameView(context: Context) : View(context) {
         val m = dp(14f)
         val hs = (if (save.bigHud) 1.25f else 1f) * (if (save.oneHanded) 0.88f else 1f) // #375 compressed HUD
         // HP bar
-        val barW = w * 0.42f; val barH = dp(15f)
+        val barW = w * 0.31f; val barH = dp(15f) // v2.3 HUD: three clean columns — the left bars never reach the center
         roundRect(c, RectF(m, m, m + barW, m + barH), dp(7f), Color.rgb(30, 10, 40), if (save.highContrast) 255 else 210)
         val hpFrac = (hp / maxHp).coerceIn(0f, 1f)
         val hpCol = when { hpFrac > 0.5f -> Color.rgb(74, 222, 128); hpFrac > 0.25f -> Color.rgb(250, 204, 21); else -> Color.rgb(248, 113, 113) }
@@ -2684,25 +3230,43 @@ class GameView(context: Context) : View(context) {
             c.drawRoundRect(RectF(m - dp(2f), m - dp(2f), m + barW + dp(2f), m + barH + dp(2f)), dp(9f), dp(9f), p)
             p.style = Paint.Style.FILL; p.alpha = 255
         }
+        if (playerGhostHp > hp) roundRect(c, RectF(m, m, m + barW * (playerGhostHp / maxHp).coerceIn(0f, 1f), m + barH), dp(7f), Color.rgb(254, 226, 226)) // #518 damage ghost trails your HP
         if (hpFrac > 0) roundRect(c, RectF(m, m, m + barW * hpFrac, m + barH), dp(7f), hpCol)
+        if (hpFrac in 0f..0.25f) { // #445 danger pulse on a dying bar
+            p.style = Paint.Style.STROKE; p.strokeWidth = dp(2f)
+            p.color = Color.WHITE; p.alpha = (120 + 110 * sin(time * 9f)).toInt().coerceIn(10, 230)
+            c.drawRoundRect(RectF(m, m, m + barW, m + barH), dp(7f), dp(7f), p)
+            p.style = Paint.Style.FILL; p.alpha = 255
+        }
         txtL(c, "HP ${hp.toInt()}/${maxHp.toInt()}", m + dp(6f), m + barH - dp(3.5f), dp(10.5f) * hs, Color.WHITE, true)
         // XP bar
         val xpY = m + barH + dp(5f)
         roundRect(c, RectF(m, xpY, m + barW, xpY + dp(9f)), dp(4f), Color.rgb(30, 10, 40), if (save.highContrast) 255 else 210)
         val xpFrac = (xp.toFloat() / xpNext).coerceIn(0f, 1f)
-        if (xpFrac > 0) roundRect(c, RectF(m, xpY, m + barW * xpFrac, xpY + dp(9f)), dp(4f), Color.rgb(52, 211, 153))
-        txtL(c, "LV $level", m + barW + dp(8f), xpY + dp(9f), dp(12f), Color.rgb(52, 211, 153), true)
+        if (xpFrac > 0) roundRect(c, RectF(m, xpY, m + barW * xpFrac, xpY + dp(9f)), dp(4f), if (xpFrac > 0.9f) Color.rgb(250, 204, 21) else Color.rgb(52, 211, 153)) // #486 near-level gold
+        if (xpFrac > 0.02f) { p.color = Color.WHITE; p.alpha = (150 + 80 * sin(time * 6f)).toInt().coerceIn(70, 230); c.drawCircle(m + barW * xpFrac, xpY + dp(4.5f), dp(2.2f), p); p.alpha = 255 } // #491 fill-tip glow
+        if (xpFrac > 0.1f) { p.color = Color.rgb(52, 211, 153); p.alpha = 90; c.drawCircle(m + barW * xpFrac - dp(7f), xpY + dp(4.5f), dp(1.4f), p); p.alpha = 255 } // #730 a spark trails the XP tip
+        for (q in 1..3) { val qx = m + barW * q / 4f; p.color = Color.rgb(7, 3, 18); p.alpha = 130; c.drawRect(qx - dp(0.7f), xpY + dp(1f), qx + dp(0.7f), xpY + dp(8f), p) } // #517 XP quarter ticks
+        p.alpha = 255
+        txtL(c, "LV $level", m + barW + dp(8f), xpY + dp(9f), dp(12f), if (xpFrac > 0.9f) Color.rgb(250, 204, 21) else Color.rgb(52, 211, 153), true) // #594 LV runs gold when a level is close
         txtR(c, "$xp/$xpNext", m + barW - dp(4f), xpY + dp(8.5f), dp(8.5f), Color.WHITE, true)
         if (combo >= 3) { // 🔥 combo meter with decay bar
             val cmult = 1 + min(combo / 10, 4)
-            txtL(c, "🔥 COMBO $combo  ×$cmult SCORE", m, xpY + dp(30f), dp(14f) * (1f + 0.45f * max(0f, comboPop)), Color.rgb(251, 146, 60), true)
-            roundRect(c, RectF(m, xpY + dp(36f), m + barW * 0.6f, xpY + dp(41f)), dp(2f), Color.rgb(30, 10, 40), 200)
-            roundRect(c, RectF(m, xpY + dp(36f), m + barW * 0.6f * (comboT / 2.5f).coerceIn(0f, 1f), xpY + dp(41f)), dp(2f), Color.rgb(251, 146, 60))
-            txtL(c, "BEST $comboBest", m + barW * 0.6f + dp(10f), xpY + dp(41f), dp(10.5f), Color.rgb(148, 163, 184), true)
+            if (combo >= 10) { // #448 hot-streak backlight
+                p.color = Color.rgb(249, 115, 22); p.alpha = (36 + 16 * sin(time * 7f)).toInt().coerceIn(20, 52)
+                c.drawRoundRect(RectF(m - dp(6f), xpY + dp(26f), m + barW * 0.62f, xpY + dp(48f)), dp(9f), dp(9f), p); p.alpha = 255
+            }
+            txtL(c, "🔥 COMBO $combo  ×$cmult", m, xpY + dp(44f), dp(13f) * (1f + 0.25f * max(0f, comboPop)), Color.rgb(251, 146, 60), true)
+            if (combo >= 100) poly(c, m + dp(118f), xpY + dp(40f), dp(4.4f), 4, time * 5f, Color.rgb(250, 204, 21)) // #698 a gold star crowns a 100+ combo
+            if (combo >= 50) for (k in 0 until 3) { val fx4 = m + barW * 0.6f * (k + 0.5f) / 3f; poly(c, fx4, xpY + dp(47f) + sin(time * 11f + k * 2.2f) * dp(1.6f), dp(3.6f + 1.2f * sin(time * 13f + k)), 3, -1.5708f, Color.rgb(249, 115, 22)) } // #551 at 50+ the combo bar sprouts flames
+            roundRect(c, RectF(m, xpY + dp(50f), m + barW * 0.6f, xpY + dp(55f)), dp(2f), Color.rgb(30, 10, 40), 200)
+            if (comboT > 0.05f) { p.color = Color.rgb(254, 240, 138); p.alpha = 200; c.drawCircle(m + barW * 0.6f * (comboT / 2.5f).coerceIn(0f, 1f), xpY + dp(52.5f), dp(2.6f), p); p.alpha = 255 } // #622 the combo fuse burns at the tip
+            roundRect(c, RectF(m, xpY + dp(50f), m + barW * 0.6f * (comboT / 2.5f).coerceIn(0f, 1f), xpY + dp(55f)), dp(2f), if (comboT < 0.6f && (time * 10f).toInt() % 2 == 0) Color.rgb(248, 113, 113) else Color.rgb(251, 146, 60)) // #488 expiry flash
+            txtL(c, "BEST $comboBest", m + barW * 0.6f + dp(10f), xpY + dp(55f), dp(10.5f), Color.rgb(148, 163, 184), true)
         }
         // wave + score + gems
-        txt(c, if (endlessMode) "WAVE $wave ♾️" else "WAVE $wave/$MAX_WAVE", w / 2, m + dp(16f), dp(16f) * hs, Color.rgb(233, 213, 255), true)
-        if (dailyMode) txt(c, "📅 DAILY SEED $dailyDay", w / 2, m + dp(33f), dp(10.5f) * hs, Color.rgb(94, 234, 212), true) // #334
+        txt(c, if (endlessMode) "WAVE $wave ∞" else "WAVE $wave/$MAX_WAVE", w / 2, m + dp(47f), dp(15f), if (endlessMode) Color.rgb(250, 204, 21) else Color.rgb(233, 213, 255), true) // v2.3 own row — collides with nothing; #583 endless runs gold
+        if (dailyMode) txt(c, "📅 DAILY SEED $dailyDay", w / 2, m + dp(93f), dp(10.5f), Color.rgb(94, 234, 212), true) // #334 (v2.3: moved to its own clear row)
         if (save.totalRuns == 0 && wave == 1 && runTime < 7f) { // #392 first-run joystick guide
             val gp = 0.5f + 0.5f * sin(time * 5f)
             p.style = Paint.Style.STROKE; p.strokeWidth = dp(2.5f); p.color = Color.argb((140 + 100 * gp).toInt(), 34, 211, 238)
@@ -2713,21 +3277,56 @@ class GameView(context: Context) : View(context) {
             val dpulse = 0.5f + 0.5f * sin(time * 6f)
             txt(c, "💨 TAP DASH!", dashBtnRect.centerX(), dashBtnRect.top - dp(14f) - dp(4f) * dpulse, dp(13f), Color.rgb(250, 204, 21), true)
         }
+        if (save.totalRuns == 0 && rocketCharges >= rocketMaxCharges && enemies.any { hyp(it.x - px, it.y - py) < dp(220f) }) { // #484 first rocket prompt
+            val rpulse = 0.5f + 0.5f * sin(time * 6f + 1f)
+            txt(c, "🚀 TAP ROCKET!", rocketBtnRect.centerX(), rocketBtnRect.top - dp(24f) - dp(4f) * rpulse, dp(13f), Color.rgb(251, 146, 60), true)
+            poly(c, rocketBtnRect.centerX(), rocketBtnRect.top - dp(10f) + dp(2f) * rpulse, dp(4f), 4, time * 2f, Color.rgb(251, 146, 60)) // #608 a diamond spins under the prompt
+        }
         if (waveTotal > 0) {
             val remain = toSpawn + enemies.size
             val wfrac = (1f - remain.toFloat() / waveTotal).coerceIn(0f, 1f)
-            roundRect(c, RectF(w / 2 - dp(42f), m + dp(23f), w / 2 + dp(42f), m + dp(27f)), dp(2f), Color.rgb(30, 10, 40), 200)
-            if (wfrac > 0) roundRect(c, RectF(w / 2 - dp(42f), m + dp(23f), w / 2 - dp(42f) + dp(84f) * wfrac, m + dp(27f)), dp(2f), Color.rgb(52, 211, 153))
+            roundRect(c, RectF(w / 2 - dp(42f), m + dp(52f), w / 2 + dp(42f), m + dp(56f)), dp(2f), Color.rgb(30, 10, 40), 200)
+            if (wfrac > 0) roundRect(c, RectF(w / 2 - dp(42f), m + dp(52f), w / 2 - dp(42f) + dp(84f) * wfrac, m + dp(56f)), dp(2f), Color.rgb(52, 211, 153))
+            if (wfrac > 0.02f) { // #526 a tiny turtle rides the wave progress
+                val txp = w / 2 - dp(42f) + dp(84f) * wfrac
+                p.color = Color.rgb(34, 197, 94); c.drawCircle(txp, m + dp(54f), dp(3.4f), p)
+                p.color = Color.rgb(187, 247, 208); c.drawCircle(txp + dp(3.6f), m + dp(54f), dp(1.7f), p)
+                p.color = Color.WHITE; p.alpha = (50 + 40 * sin(time * 9f)).toInt().coerceIn(10, 90); c.drawCircle(txp - dp(6f), m + dp(54f), dp(1.1f), p); p.alpha = 255 // #634 the progress turtle kicks a wake
+            }
+            if (remain in 1..3) { // #446 almost there — the bar burns gold
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.6f); p.color = Color.rgb(250, 204, 21)
+                p.alpha = (140 + 100 * sin(time * 8f)).toInt().coerceIn(40, 240)
+                c.drawRoundRect(RectF(w / 2 - dp(42f), m + dp(52f), w / 2 + dp(42f), m + dp(56f)), dp(2f), dp(2f), p)
+                p.style = Paint.Style.FILL; p.alpha = 255
+            }
+            if (remain in 1..8) { p.color = Color.rgb(250, 204, 21); p.alpha = (140 + 80 * sin(time * 7f)).toInt().coerceIn(60, 220); for (k in 0 until remain) c.drawCircle(w / 2 - (remain - 1) * dp(3f) + k * dp(6f), m + dp(63f), dp(1.8f), p); p.alpha = 255 } // #631 the last foes show as pips under the bar
         }
-        if (save.showTimer) txt(c, "⏱ ${(runTime / 60).toInt()}:${(runTime % 60).toInt().toString().padStart(2, '0')}", w / 2, m + dp(40f), dp(11.5f), Color.rgb(148, 163, 184))
-        txtR(c, "SCORE $score", w - m - dp(52f), m + dp(15f), dp(14f) * hs, Color.WHITE, true)
+        if (save.showTimer) { p.color = Color.rgb(250, 204, 21); p.alpha = (120 + 100 * sin(time * 6.283f)).toInt().coerceIn(20, 220); c.drawCircle(w / 2 + dp(36f), m + dp(76f), dp(1.8f), p); p.alpha = 255 } // #632 a second-hand dot ticks beside the timer
+        if (save.showTimer) txt(c, "⏱ ${(runTime / 60).toInt()}:${(runTime % 60).toInt().toString().padStart(2, '0')}", w / 2, m + dp(80f), dp(11.5f), Color.rgb(148, 163, 184))
+        if (scorePop > 0.1f) { p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.6f); p.color = Color.rgb(250, 204, 21); p.alpha = (140 * (scorePop / 0.35f)).toInt().coerceIn(0, 140); c.drawCircle(w - m - dp(88f), m + dp(11f), dp(13f) + dp(6f) * (1f - scorePop / 0.35f), p); p.style = Paint.Style.FILL; p.alpha = 255 } // #633 big scores ring the SCORE label
+        txtR(c, "SCORE $score", w - m - dp(52f), m + dp(15f), dp(13.5f) * (1f + 0.3f * max(0f, scorePop)), Color.WHITE, true) // #492
         txtR(c, "💎 $gemsRun   ☠ $kills", w - m - dp(52f), m + dp(36f), dp(13f) * (1f + 0.3f * max(0f, max(gemsPop, killsPop))), Color.rgb(165, 243, 252))
+        if (gemsPop > 0.05f) poly(c, w - m - dp(170f), m + dp(32f), dp(4f) * (0.7f + 0.3f * gemsPop), 4, time * 7f, Color.rgb(52, 211, 153)) // #723 a gem spark spins while the gem count pops
         // boss bar
         val boss = enemies.firstOrNull { it.type == 5 }
         if (boss != null) {
-            val bw = w * 0.7f; val bx = (w - bw) / 2; val by = m + dp(46f)
+            val bw = w * 0.7f; val bx = (w - bw) / 2; val by = h - dp(148f) // v2.3 boss bar lives at the bottom now — the top stays clean
             roundRect(c, RectF(bx, by, bx + bw, by + dp(13f)), dp(6f), Color.rgb(30, 10, 40), 220)
+            if (bossGhostHp > boss.hp) roundRect(c, RectF(bx + bw * (boss.hp / boss.maxHp).coerceIn(0f, 1f), by, bx + bw * (bossGhostHp / boss.maxHp).coerceIn(0f, 1f), by + dp(13f)), dp(6f), Color.rgb(233, 213, 255)) // #487 damage ghost
             roundRect(c, RectF(bx, by, bx + bw * (boss.hp / boss.maxHp).coerceIn(0f, 1f), by + dp(13f)), dp(6f), Color.rgb(168, 85, 247))
+            val hpF2 = (boss.hp / boss.maxHp).coerceIn(0f, 1f); val shb = ((time * 0.35f) % 1.3f - 0.15f) // #620 a shine stripe travels the boss bar's fill
+            if (shb in 0f..1f && hpF2 > 0.02f) { val sxb = bx + bw * hpF2 * shb; p.color = Color.WHITE; p.alpha = 34; c.drawRect(sxb, by + dp(1.5f), min(sxb + dp(10f), bx + bw * hpF2), by + dp(11.5f), p); p.alpha = 255 }
+            if (hpF2 < 0.25f && hpF2 > 0f) { p.color = Color.rgb(239, 68, 68); p.alpha = (120 + 100 * sin(time * 8f)).toInt().coerceIn(20, 220); c.drawCircle(bx + bw * hpF2, by + dp(6.5f), dp(3.4f), p); p.alpha = 255 } // #724 the boss bar's tip burns red under 25%
+            p.color = Color.rgb(7, 3, 18); p.alpha = 160 // #447 phase ticks at the third marks
+            c.drawRect(bx + bw / 3f - dp(1f), by + dp(1.5f), bx + bw / 3f + dp(1f), by + dp(11.5f), p)
+            c.drawRect(bx + bw * 2f / 3f - dp(1f), by + dp(1.5f), bx + bw * 2f / 3f + dp(1f), by + dp(11.5f), p)
+            p.alpha = 255
+            for (k in 0 until 2) { // #543 flame tips lick the boss bar's ends
+                val fx3 = if (k == 0) bx - dp(6f) else bx + bw + dp(6f)
+                poly(c, fx3, by + dp(6f) + sin(time * 9f + k * 2f) * dp(1.5f), dp(5f + 1.5f * sin(time * 11f + k)), 3, -1.5708f, Color.rgb(249, 115, 22))
+            }
+            poly(c, bx + dp(7f), by + dp(6.5f), dp(4f), 4, time * 2f, Color.rgb(216, 180, 254)) // #598 boss bar end-gems spin (loop-11: seated on the bar itself)
+            poly(c, bx + bw - dp(7f), by + dp(6.5f), dp(4f), 4, -time * 2f, Color.rgb(216, 180, 254))
             txt(c, "👑 ABYSS WARDEN", w / 2, by - dp(5f), dp(11f), Color.rgb(233, 213, 255), true)
             txt(c, "${boss.hp.toInt()} / ${boss.maxHp.toInt()}", w / 2, by + dp(11f), dp(9f), Color.WHITE, true)
         }
@@ -2735,6 +3334,9 @@ class GameView(context: Context) : View(context) {
         pauseBtnRect.set(w - m - dp(56f), m, w - m, m + dp(56f))
         val pvR = RectF(pauseBtnRect.centerX() - dp(20f), pauseBtnRect.centerY() - dp(20f), pauseBtnRect.centerX() + dp(20f), pauseBtnRect.centerY() + dp(20f))
         roundRect(c, pvR, dp(10f), Color.rgb(40, 16, 70), 200)
+        p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.6f); p.color = CHARS[save.selectedChar].color; p.alpha = (50 + 40 * sin(time * 2.4f)).toInt().coerceIn(10, 90) // #496 idle pulse, #532 in your hero's color
+        c.drawRoundRect(RectF(pvR.left - dp(2.5f), pvR.top - dp(2.5f), pvR.right + dp(2.5f), pvR.bottom + dp(2.5f)), dp(12f), dp(12f), p)
+        p.style = Paint.Style.FILL; p.alpha = 255
         txt(c, "❚❚", pvR.centerX(), pvR.centerY() + dp(7f), dp(15f), Color.WHITE)
         // joystick
         if (state == State.PLAYING) {
@@ -2743,6 +3345,13 @@ class GameView(context: Context) : View(context) {
                 c.drawCircle(aimOx, aimOy, dp(52f) * save.joySize, p)
                 p.alpha = 200
                 c.drawCircle(aimOx + aimDx * dp(38f), aimOy + aimDy * dp(38f), dp(24f) * save.joySize, p); p.alpha = 255
+                if (hyp(aimDx, aimDy) > 0.12f) { // #470 arrowhead shows the fire direction
+                    val aa2 = atan2(aimDy, aimDx)
+                    poly(c, aimOx + cos(aa2) * dp(62f), aimOy + sin(aa2) * dp(62f), dp(8f), 4, aa2 + 0.78f, Color.rgb(244, 114, 182))
+                    p.color = Color.WHITE; p.alpha = (170 + 70 * sin(time * 10f)).toInt().coerceIn(100, 240) // #544 the arrowhead's core pulses
+                    c.drawCircle(aimOx + cos(aa2) * dp(62f), aimOy + sin(aa2) * dp(62f), dp(2.6f), p); p.alpha = 255
+                    poly(c, aimOx + cos(aa2) * dp(48f), aimOy + sin(aa2) * dp(48f), dp(5f), 4, aa2 + 0.78f, Color.rgb(249, 168, 212)) // #647 a fainter echo diamond trails the arrowhead
+                }
             }
             if (joyPointer != -1) {
                 p.style = Paint.Style.STROKE; p.strokeWidth = dp(2f); p.color = Color.rgb(165, 243, 252); p.alpha = (150 + 60 * sin(time * 6f)).toInt().coerceIn(90, 210)
@@ -2751,6 +3360,9 @@ class GameView(context: Context) : View(context) {
                 c.drawCircle(joyOx + joyDx * dp(38f), joyOy + joyDy * dp(38f), dp(34f) * save.joySize, p) // #317
                 p.style = Paint.Style.FILL; p.alpha = (200 * save.btnOpacity).toInt(); p.color = Color.rgb(34, 211, 238) // #395
                 c.drawCircle(joyOx + joyDx * dp(38f), joyOy + joyDy * dp(38f), dp(24f) * save.joySize, p); p.alpha = 255 // #317
+                p.color = CHARS[save.selectedChar].color; p.alpha = (150 * save.btnOpacity).toInt(); c.drawCircle(joyOx + joyDx * dp(38f), joyOy + joyDy * dp(38f), dp(9f) * save.joySize, p); p.alpha = 255 // #648 the stick knob wears your hero's color at its heart
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.4f); p.color = Color.rgb(165, 243, 252); p.alpha = (70 + 40 * sin(time * 4f)).toInt().coerceIn(30, 110) // #530 outer halo breathes while you steer
+                c.drawCircle(joyOx, joyOy, dp(60f) * save.joySize, p); p.style = Paint.Style.FILL; p.alpha = 255
             } else if (joySpringT > 0) { // #182 knob springs home with a damped bounce
                 val ph = 1f - joySpringT / 0.28f
                 val off = (1f - ph) * (1f + 0.55f * sin(ph * 7f) * (1f - ph))
@@ -2771,6 +3383,7 @@ class GameView(context: Context) : View(context) {
             val dby = if (save.oneHanded) dp(92f) else dp(110f) // #375 dash rides closer one-handed
             if (save.joyLeft) dashBtnRect.set(m, h - dby - dr * 2, m + dr * 2, h - dby) // #318 left-side layout
             else dashBtnRect.set(w - m - dr * 2, h - dby - dr * 2, w - m, h - dby)
+            rocketBtnRect.set(dashBtnRect.left, dashBtnRect.top - dp(16f) - dr * 2, dashBtnRect.right, dashBtnRect.top - dp(16f)) // 🚀 stacked above dash
             val ready = dashCharges > 0
             p.color = if (ready) Color.rgb(34, 211, 238) else Color.rgb(71, 85, 105); p.alpha = (190 * save.btnOpacity).toInt() // #395
             c.drawCircle(dashBtnRect.centerX(), dashBtnRect.centerY(), dr, p); p.alpha = 255
@@ -2795,6 +3408,12 @@ class GameView(context: Context) : View(context) {
                 c.drawCircle(dashBtnRect.centerX(), dashBtnRect.centerY(), dr * (1f + rf * 0.8f), p)
                 p.style = Paint.Style.FILL; p.alpha = 255
             }
+            if (dashCharges < dashMaxCharges) { // #538 dash button sweeps its recharge
+                val dprog2 = 1f - (dashRechargeT / dashCdMax).coerceIn(0f, 1f)
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(3f); p.color = Color.rgb(34, 211, 238); p.alpha = 190
+                c.drawArc(RectF(dashBtnRect.left + dp(4f), dashBtnRect.top + dp(4f), dashBtnRect.right - dp(4f), dashBtnRect.bottom - dp(4f)), -90f, 360f * dprog2, false, p)
+                p.style = Paint.Style.FILL; p.alpha = 255
+            }
             txt(c, "DASH", dashBtnRect.centerX(), dashBtnRect.bottom + dp(15f), dp(10f), Color.rgb(165, 243, 252), true)
             if (dashMaxCharges > 1) {
                 for (ci in 0 until dashMaxCharges) {
@@ -2802,13 +3421,57 @@ class GameView(context: Context) : View(context) {
                     c.drawCircle(dashBtnRect.centerX() + (ci - (dashMaxCharges - 1) / 2f) * dp(15f), dashBtnRect.bottom + dp(28f), dp(4.5f), p)
                 }
             }
+            // 🚀 ROCKET button — the dash button's sibling, stacked above it
+            val rdy = rocketCharges > 0
+            p.color = if (rdy) Color.rgb(249, 115, 22) else Color.rgb(71, 85, 105); p.alpha = (190 * save.btnOpacity).toInt()
+            c.drawCircle(rocketBtnRect.centerX(), rocketBtnRect.centerY(), dr, p); p.alpha = 255
+            if (rocketCharges < rocketMaxCharges) {
+                val rsweep = (rocketRechargeT / rocketCdMax).coerceIn(0f, 1f)
+                p.color = Color.rgb(7, 3, 18); p.alpha = 130
+                c.drawArc(rocketBtnRect, -90f, 360f * rsweep, true, p); p.alpha = 255
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(4f); p.color = Color.rgb(254, 240, 138); p.alpha = 220
+                val rinset = RectF(rocketBtnRect.left + dp(3f), rocketBtnRect.top + dp(3f), rocketBtnRect.right - dp(3f), rocketBtnRect.bottom - dp(3f))
+                c.drawArc(rinset, -90f, 360f * (1f - rsweep), false, p)
+                p.style = Paint.Style.FILL; p.alpha = 255
+            } else {
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(2.5f); p.color = Color.rgb(254, 240, 138)
+                p.alpha = (140 + 90 * sin(time * 5f)).toInt().coerceIn(50, 230)
+                c.drawCircle(rocketBtnRect.centerX(), rocketBtnRect.centerY(), dr + dp(2f), p)
+                p.style = Paint.Style.FILL; p.alpha = 255
+            }
+            if (rocketReadyT > 0) { // #481 charge-complete flash ring
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(2.5f); p.color = Color.rgb(254, 240, 138)
+                p.alpha = (220 * (rocketReadyT / 0.35f)).toInt().coerceIn(0, 220)
+                c.drawCircle(rocketBtnRect.centerX(), rocketBtnRect.centerY(), dr + dp(10f) * (1f - rocketReadyT / 0.35f), p)
+                p.style = Paint.Style.FILL; p.alpha = 255
+            }
+            if (rocketCharges == 0) { // #609 recharge arc sweeps the rocket button
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp(3f); p.color = Color.rgb(249, 115, 22); p.alpha = 170
+                c.drawArc(RectF(rocketBtnRect.left + dp(5f), rocketBtnRect.top + dp(5f), rocketBtnRect.right - dp(5f), rocketBtnRect.bottom - dp(5f)), -90f, 360f * (1f - (rocketRechargeT / rocketCdMax).coerceIn(0f, 1f)), false, p)
+                p.style = Paint.Style.FILL; p.alpha = 255
+            }
+            txt(c, "🚀", rocketBtnRect.centerX(), rocketBtnRect.centerY() + dp(8f), dp(20f), Color.WHITE)
+            txt(c, "ROCKET", rocketBtnRect.centerX(), rocketBtnRect.top - dp(5f), dp(10f), Color.rgb(254, 240, 138), true)
+            for (ci in 0 until rocketMaxCharges) {
+                if (ci < rocketCharges) { p.color = Color.rgb(249, 115, 22); p.alpha = (60 + 40 * sin(time * 5f + ci)).toInt().coerceIn(20, 100); c.drawCircle(rocketBtnRect.centerX() + (ci - (rocketMaxCharges - 1) / 2f) * dp(13f), rocketBtnRect.bottom + dp(8f), dp(6.4f), p); p.alpha = 255 } // #565 charged pips glow
+                p.color = if (ci < rocketCharges) Color.rgb(249, 115, 22) else Color.rgb(71, 85, 105)
+                c.drawCircle(rocketBtnRect.centerX() + (ci - (rocketMaxCharges - 1) / 2f) * dp(13f), rocketBtnRect.bottom + dp(8f), dp(3.4f), p)
+            }
+            if (rocketCharges >= rocketMaxCharges) (0 until 2).forEach { k -> val ra2 = time * 3.4f + k * 3.14159f; poly(c, rocketBtnRect.centerX() + cos(ra2) * dp(34f), rocketBtnRect.centerY() + sin(ra2) * dp(34f), dp(2.8f), 4, ra2, Color.rgb(254, 240, 138)) } // #733 sparks orbit a full rocket charge
         }
     }
 
     private fun drawLevelUp(c: Canvas) {
         p.color = Color.rgb(4, 2, 12); p.alpha = 200; p.style = Paint.Style.FILL
         c.drawRect(0f, 0f, w, h, p); p.alpha = 255
+        for (k in 0 until 9) { // #572 gold motes rise through the draft
+            val mx2 = (k * 0.618f + 0.07f) * w; val my2 = h - ((time * 26f + k * 173f) % (h + 40f)) + dp(20f)
+            p.color = Color.rgb(250, 204, 21); p.alpha = (60 + 50 * sin(time * 2f + k * 1.7f)).toInt().coerceIn(10, 110)
+            c.drawCircle(mx2, my2, dp(2.2f), p)
+        }
+        p.alpha = 255
         txt(c, "⭐ LEVEL $level ⭐", w / 2, h * 0.2f, dp(27f), Color.rgb(52, 211, 153), true)
+        (0 until 2).forEach { k -> val sx7 = w / 2 + (if (k == 0) -1f else 1f) * dp(132f); poly(c, sx7, h * 0.2f - dp(9f), dp(4.6f), 4, time * 3.6f + k * 1.8f, Color.rgb(250, 204, 21)) } // #692 stars spin beside the LEVEL shout
         txt(c, "Choose an upgrade", w / 2, h * 0.2f + dp(30f), dp(15f), Color.rgb(203, 213, 225))
         // #332 owned build icons row
         val ownedRow = (0..23).filter { upgradeCounts[it] > 0 }
@@ -2817,6 +3480,7 @@ class GameView(context: Context) : View(context) {
             for (oi in ownedRow) {
                 txt(c, UPGRADE_NAMES[oi].substringBefore(' '), ox + dp(19f), h * 0.2f + dp(64f), dp(15f), Color.WHITE)
                 if (upgradeCounts[oi] > 1) txt(c, "×${upgradeCounts[oi]}", ox + dp(19f), h * 0.2f + dp(79f), dp(9.5f), Color.rgb(250, 204, 21), true)
+                if (upgradeCounts[oi] >= 3) { p.color = Color.rgb(250, 204, 21); p.alpha = 120; c.drawCircle(ox + dp(19f), h * 0.2f + dp(86f), dp(1.7f), p); p.alpha = 255 } // #693 stacked builds earn a gold dot
                 ox += dp(42f)
             }
         }
@@ -2831,6 +3495,7 @@ class GameView(context: Context) : View(context) {
             roundRect(c, RectF(x0, y0 + dp(5f), x0 + cardW, y0 + cardH + dp(5f)), dp(14f), Color.BLACK, 110)
             val rarityCol = when (oi) { 6, 10 -> Color.rgb(192, 132, 252); 5, 11 -> Color.rgb(96, 165, 250); else -> Color.rgb(52, 211, 153) }
             button(c, r, "", Color.rgb(30, 14, 56), Color.WHITE, 16f, "up:$oi", rarityCol)
+            poly(c, r.right - dp(18f), y0 + dp(18f), dp(4.4f), 4, time * 3.4f + oi, rarityCol) // #691 draft cards sparkle in their rarity color
             txtFitC(c, UPGRADE_NAMES[oi], r.centerX(), y0 + dp(38f), dp(19f), Color.WHITE, r.width() - dp(16f), true)
             txtFitC(c, UPGRADE_DESCS[oi], r.centerX(), y0 + dp(66f), dp(13.5f), Color.rgb(165, 243, 252), r.width() - dp(16f), false)
             if (upgradeCounts[oi] > 0) txt(c, "Owned ×${upgradeCounts[oi]}", r.centerX(), y0 + dp(87f), dp(11f), Color.rgb(250, 204, 21), true)
@@ -2848,17 +3513,22 @@ class GameView(context: Context) : View(context) {
         p.color = Color.rgb(4, 2, 12); p.alpha = (205 * min(1f, screenT / 0.2f)).toInt(); p.style = Paint.Style.FILL
         c.drawRect(0f, 0f, w, h, p); p.alpha = 255
         c.save(); c.translate(0f, (1f - pEase) * -dp(48f))
-        p.style = Paint.Style.STROKE; p.strokeWidth = dp(2.5f); p.color = Color.rgb(168, 85, 247); p.alpha = 170
-        c.drawRoundRect(RectF(dp(12f), dp(12f), w - dp(12f), h - dp(12f)), dp(18f), dp(18f), p)
+        p.style = Paint.Style.STROKE; p.strokeWidth = dp(2.5f); p.color = CHARS[save.selectedChar].color; p.alpha = (140 + 60 * sin(time * 2.2f)).toInt().coerceIn(80, 200)
+        c.drawRoundRect(RectF(dp(12f), dp(12f), w - dp(12f), h - dp(12f)), dp(18f), dp(18f), p) // #569 pause frame breathes in your hero's color
+        p.style = Paint.Style.FILL; (0 until 4).forEach { k -> val cx9 = if (k % 2 == 0) dp(12f) else w - dp(12f); val cy9 = if (k < 2) dp(12f) else h - dp(12f); poly(c, cx9, cy9, dp(4f), 4, time * 2f + k, CHARS[save.selectedChar].color) }; p.alpha = 255 // #697 the pause frame is studded at its corners
         p.style = Paint.Style.FILL; p.alpha = 255
         txt(c, "⏸ PAUSED", w / 2, h * 0.3f, dp(30f), Color.WHITE, true)
+        (0 until 2).forEach { k -> val px9 = w / 2 + (if (k == 0) -1f else 1f) * dp(104f); poly(c, px9, h * 0.3f - dp(10f), dp(4.2f), 4, time * 2.8f + k * 1.9f, CHARS[save.selectedChar].color) } // #694 hero-color sparks flank PAUSED
         txt(c, "Wave $wave  •  Score $score  •  💎 $gemsRun", w / 2, h * 0.3f + dp(34f), dp(15f), Color.rgb(165, 243, 252))
         // #328 run summary: build so far + run stats
         val pBuild = (0..23).filter { upgradeCounts[it] > 0 }.joinToString("  ") { "${UPGRADE_NAMES[it].substringBefore(' ')}×${upgradeCounts[it]}" }
+        if (pBuild.isNotEmpty()) { p.color = Color.rgb(250, 204, 21); p.alpha = (120 + 80 * sin(time * 3f)).toInt().coerceIn(40, 200); c.drawCircle(dp(20f), h * 0.3f + dp(54f), dp(2f), p); p.alpha = 255 } // #695 your build line wears a gold bead
         if (pBuild.isNotEmpty()) txtFitC(c, pBuild.take(62), w / 2, h * 0.3f + dp(58f), dp(12.5f), Color.rgb(250, 204, 21), w - dp(24f))
         txt(c, "⏱ ${(runTime / 60).toInt()}:${(runTime % 60).toInt().toString().padStart(2, '0')}  •  ☠ $kills  •  ⭐ LV $level  •  💀 $deaths", w / 2, h * 0.3f + dp(79f), dp(12.5f), Color.rgb(148, 163, 184))
         val bw = w * 0.6f; val bh = dp(56f); val x0 = (w - bw) / 2
+        p.color = Color.rgb(74, 222, 128); p.alpha = (30 + 22 * sin(time * 3.4f)).toInt().coerceIn(8, 52); c.drawRoundRect(RectF(x0 - dp(4f), h * 0.42f - dp(4f), x0 + bw + dp(4f), h * 0.42f + bh + dp(4f)), dp(16f), dp(16f), p); p.alpha = 255 // #597 RESUME breathes a soft halo
         button(c, RectF(x0, h * 0.42f, x0 + bw, h * 0.42f + bh), "▶  RESUME", Color.rgb(22, 163, 74), Color.WHITE, 19f, "resume")
+        (0 until 2).forEach { k -> poly(c, (if (k == 0) x0 + dp(10f) else x0 + bw - dp(10f)), h * 0.42f + dp(10f), dp(3.2f), 4, time * 3.2f + k * 1.9f, Color.rgb(187, 247, 208)) } // #734 studs pin the RESUME button's corners
         button(c, RectF(x0, h * 0.42f + bh + dp(14f), x0 + bw, h * 0.42f + bh * 2 + dp(14f)), "↻  RESTART RUN", Color.rgb(71, 85, 105), Color.WHITE, 17f, "restart")
         button(c, RectF(x0, h * 0.42f + bh * 2 + dp(28f), x0 + bw, h * 0.42f + bh * 3 + dp(28f)), "🏠  QUIT TO MENU", Color.rgb(71, 85, 105), Color.WHITE, 17f, "quit")
         button(c, RectF(x0, h * 0.42f + bh * 3 + dp(42f), x0 + bw, h * 0.42f + bh * 4 + dp(42f)), if (save.muteAll) "🔊  UNMUTE ALL" else "🔇  MUTE ALL", Color.rgb(71, 85, 105), Color.WHITE, 17f, "muteall") // #292
@@ -2869,6 +3539,7 @@ class GameView(context: Context) : View(context) {
         button(c, RectF(x0 + chipW + dp(6f), chipY, x0 + chipW * 2 + dp(6f), chipY + dp(48f)), "📳 ${if (save.vibration) "ON" else "OFF"}", Color.rgb(30, 41, 59), Color.WHITE, 11.5f, "vibrate")
         button(c, RectF(x0 + chipW * 2 + dp(12f), chipY, x0 + chipW * 3 + dp(12f), chipY + dp(48f)), "💥 ${if (save.shakeOn) "ON" else "OFF"}", Color.rgb(30, 41, 59), Color.WHITE, 11.5f, "shaketoggle")
         button(c, RectF(x0 + chipW * 3 + dp(18f), chipY, x0 + bw, chipY + dp(48f)), "🔊 ${if (save.muteAll) "OFF" else "ON"}", Color.rgb(30, 41, 59), Color.WHITE, 11.5f, "muteall")
+        (0 until 4).forEach { k -> val on = when (k) { 0 -> save.musicOn; 1 -> save.vibration; 2 -> save.shakeOn; else -> !save.muteAll }; if (on) { p.color = Color.rgb(74, 222, 128); p.alpha = 200; c.drawCircle(x0 + chipW * k + dp(6f) * k + chipW - dp(10f), chipY + dp(10f), dp(2.4f), p) } }; p.alpha = 255 // #696 live toggles wear a green bead
         c.restore()
     }
 
@@ -2876,10 +3547,15 @@ class GameView(context: Context) : View(context) {
         p.color = Color.rgb(4, 2, 12); p.alpha = 215; p.style = Paint.Style.FILL
         c.drawRect(0f, 0f, w, h, p); p.alpha = 255
         for (fs in fallShards) poly(c, fs.x, fs.y, fs.r, fs.sides, fs.rot, fs.color) // #178 slow shards / #179 fountain gems
+        if (victory) { // #570 golden glow orbs turn behind the victory
+            for (k in 0 until 6) { val ra = time * 0.24f + k * 1.047f; p.color = Color.rgb(250, 204, 21); p.alpha = 12; c.drawCircle(w / 2 + cos(ra) * dp(170f), h * 0.30f + sin(ra) * dp(150f), dp(52f), p) }
+            p.alpha = 255
+        }
         if (victory) { // #249 slow victory zoom on the hero
             val vz = 1f + 0.07f * min(1f, screenT / 2.5f)
             c.save(); c.scale(vz, vz, w / 2, h * 0.42f)
         }
+        if (victory) { p.style = Paint.Style.STROKE; p.strokeWidth = dp(9f); p.color = Color.rgb(250, 204, 21); p.alpha = 13; (0 until 6).forEach { k -> val ra2 = k * 1.047f + time * 0.24f; c.drawLine(w / 2, h * 0.30f, w / 2 + cos(ra2) * dp(190f), h * 0.30f + sin(ra2) * dp(190f), p) }; p.style = Paint.Style.FILL; p.alpha = 255 } // #659 slow rays turn behind the victory hero
         if (!victory) { // #250 game-over desaturate wash + crack overlay
             p.color = Color.rgb(100, 116, 139); p.alpha = 34
             c.drawRect(0f, 0f, w, h, p); p.alpha = 255
@@ -2890,6 +3566,12 @@ class GameView(context: Context) : View(context) {
                 for (s2 in 0 until 4) { val nx2 = cxp2 + sin(k * 7.3f + s2 * 2.9f) * dp(16f); val ny2 = cyp2 + seg; c.drawLine(cxp2, cyp2, nx2, ny2, p); cxp2 = nx2; cyp2 = ny2 }
             }
             p.style = Paint.Style.FILL; p.alpha = 255
+            p.color = Color.rgb(248, 113, 113); p.alpha = (26 + 18 * sin(time * 2.2f)).toInt().coerceIn(8, 44); (0 until 5).forEach { k -> c.drawCircle(w * (0.2f + k * 0.15f), h * 0.16f, dp(2.6f), p) }; p.alpha = 255 // #658 ember light pools where the cracks end
+        }
+        if (!victory) { // #571 red embers drift up through the wreckage
+            for (k in 0 until 7) { val ex2 = (k * 0.37f + 0.05f) * w; val ey2 = h - ((time * 20f + k * 211f) % (h + 30f)) + dp(15f)
+                p.color = Color.rgb(248, 113, 113); p.alpha = (50 + 40 * sin(time * 2.4f + k * 1.9f)).toInt().coerceIn(10, 90); c.drawCircle(ex2, ey2, dp(2f), p) }
+            p.alpha = 255
         }
         if (!victory) { // #100 shattered gem artwork
             val gy3 = h * 0.13f
@@ -2901,14 +3583,21 @@ class GameView(context: Context) : View(context) {
             c.drawLine(w / 2 - dp(6f), gy3 - dp(2f), w / 2 - dp(16f), gy3 + dp(14f), p)
             p.style = Paint.Style.FILL; p.alpha = 255
         }
+        if (!victory) { // #615 sparks sift down from the shattered gem
+            for (k in 0 until 5) { val sx9 = w / 2 + sin(k * 2.7f + time * 0.7f) * dp(20f); val sy9 = h * 0.13f + ((time * 24f + k * 47f) % dp(90f))
+                p.color = Color.rgb(248, 113, 113); p.alpha = (70 + 50 * sin(time * 3f + k * 1.9f)).toInt().coerceIn(20, 120); c.drawCircle(sx9, sy9, dp(1.8f), p) }
+            p.alpha = 255
+        }
         if (victory) {
             txt(c, "🏆 VICTORY! 🏆", w / 2, h * 0.24f, dp(32f), Color.rgb(250, 204, 21), true)
             txt(c, "The Abyss is sealed. The storm is yours.", w / 2, h * 0.24f + dp(34f), dp(14.5f), Color.rgb(203, 213, 225))
         } else {
             txt(c, "💀 SHATTERED 💀", w / 2, h * 0.24f, dp(32f), Color.rgb(248, 113, 113), true)
+            (0 until 2).forEach { k -> val ex = w / 2 + (if (k == 0) -1f else 1f) * dp(168f); poly(c, ex, h * 0.24f - dp(11f), dp(4.4f), 3, time * 3.8f + k * 2.2f, Color.rgb(249, 115, 22)) } // #726 embers flank the SHATTERED shout
             txt(c, "Your gem broke on Wave $wave. The storm rages on…", w / 2, h * 0.24f + dp(34f), dp(14.5f), Color.rgb(203, 213, 225))
         }
         if (newRecord) txt(c, "🌟 NEW HIGH SCORE! 🌟", w / 2, h * 0.24f + dp(66f), dp(16f), Color.rgb(52, 211, 153), true)
+        if (newRecord) for (k in 0 until 8) { val cx8 = w / 2 + sin(k * 2.39f + time * 1.3f) * dp(120f); val cy8 = h * 0.24f + dp(58f) + cos(k * 1.71f + time * 1.7f) * dp(10f); poly(c, cx8, cy8, dp(3f), 4, time * 3f + k, if (k % 2 == 0) Color.rgb(250, 204, 21) else Color.rgb(52, 211, 153)) } // #628 record confetti orbits the shout
         val lines = listOf(
             "SCORE" to "$score",
             "WAVE REACHED" to "$wave / $MAX_WAVE",
@@ -2921,6 +3610,7 @@ class GameView(context: Context) : View(context) {
         for ((k, v) in lines) {
             txtL(c, k, w * 0.18f, y, dp(15f), Color.rgb(148, 163, 184), true)
             txtR(c, v, w * 0.82f, y, dp(16f), Color.WHITE, true)
+            p.color = Color.rgb(88, 28, 135); p.alpha = 60; c.drawRect(w * 0.18f, y + dp(8f), w * 0.82f, y + dp(9f), p); p.alpha = 255 // #699 stat rows rest on hairlines
             y += dp(30f)
         }
         // #329/#330 build recap (+ victory rank #331, daily share code #334)
@@ -2930,6 +3620,7 @@ class GameView(context: Context) : View(context) {
             if (eBuild.length > 60) txtFitC(c, eBuild.drop(60).take(60), w / 2, y + dp(32f), dp(12.5f), Color.rgb(250, 204, 21), w - dp(24f))
         }
         if (victory) txt(c, "🏅 RANK ${rankLetter()}  •  ⏱ ${(runTime / 60).toInt()}:${(runTime % 60).toInt().toString().padStart(2, '0')}  •  💀 $deaths", w / 2, y + dp(54f), dp(14.5f), Color.rgb(52, 211, 153), true)
+        if (victory) (0 until 2).forEach { k -> val mx4 = w / 2 + (if (k == 0) -1f else 1f) * dp(196f); poly(c, mx4, y + dp(50f), dp(3.8f), 4, time * 3.6f + k * 1.9f, Color.rgb(250, 204, 21)) } // #727 gold sparks flank the victory rank
         if (dailyMode) txt(c, "📅 Daily seed $dailyDay — share code: GS-$dailyDay-$score", w / 2, y + dp(74f), dp(12f), Color.rgb(94, 234, 212))
         val bw = w * 0.62f; val bh = dp(56f); val x0 = (w - bw) / 2
         var by = h * 0.70f
@@ -3005,6 +3696,9 @@ class GameView(context: Context) : View(context) {
             val le = 1f - (1f - lt) * (1f - lt) * (1f - lt)
             p.textAlign = Paint.Align.LEFT; p.color = titleCol; p.alpha = (lt * 255).toInt().coerceIn(0, 255)
             c.drawText(titleStr[i].toString(), lx, cy + dp(108f) - (1f - le) * dp(52f), p)
+            val sh5 = 0.5f + 0.5f * sin(time * 2.6f - i * 0.6f) // #545 gold shimmer travels the title
+            p.color = Color.rgb(250, 204, 21); p.alpha = (lt * 120 * sh5).toInt().coerceIn(0, 120)
+            c.drawText(titleStr[i].toString(), lx, cy + dp(108f) - (1f - le) * dp(52f), p)
             lx += lws[i]
         }
         p.alpha = 255
@@ -3013,6 +3707,8 @@ class GameView(context: Context) : View(context) {
             p.color = Color.WHITE; p.alpha = 30
             c.drawRect(sweepX - dp(15f), cy + dp(74f), sweepX + dp(15f), cy + dp(114f), p); p.alpha = 255
         }
+        (0 until 2).forEach { k -> val fx7 = cx + (if (k == 0) -1f else 1f) * (lws.sum() / 2 + dp(14f)); poly(c, fx7, cy + dp(96f), dp(5f), 4, time * 2.6f + k * 1.9f, Color.rgb(250, 204, 21)) } // #700 gold stars guard the title — the 700th upgrade
+        p.color = Color.rgb(250, 204, 21); p.alpha = (40 + 30 * sin(time * 2.2f)).toInt().coerceIn(10, 70); c.drawRect(cx - lws.sum() / 2, cy + dp(116f), cx + lws.sum() / 2, cy + dp(117.5f), p); p.alpha = 255 // #725 a gold rule underlines the title
         txt(c, "💎  N E O N   A B Y S S  💎", cx, cy + dp(138f), dp(15f), Color.rgb(232, 121, 249), true)
         txt(c, "20 waves. Bosses. Loot. Survive the storm.", cx, cy + dp(166f), dp(13.5f), Color.rgb(203, 213, 225), false)
         // #349 high-score ticker scrolling under the title
@@ -3070,11 +3766,13 @@ class GameView(context: Context) : View(context) {
             p.alpha = 255
             txt(c, "✨ the storm awaits… ✨", cx, h * 0.47f, dp(14f), Color.rgb(232, 121, 249), true, (120 + 100 * sin(time * 2.4f)).toInt().coerceIn(30, 220))
         }
-        txtFitC(c, "💎 ${save.gemBank}  •  🌊 Best wave ${save.bestWave}  •  by QamoTech 💎N🎱  •  v2.1 — 424-upgrade edition", cx, h - dp(18f), dp(11.5f), Color.rgb(100, 116, 139), w - dp(16f), false) // #337 footer chips
+        txtFitC(c, "💎 ${save.gemBank}  •  🌊 Best wave ${save.bestWave}  •  by QamoTech 💎N🎱  •  v2.5 — 736-upgrade edition", cx, h - dp(18f), dp(11.5f), Color.rgb(100, 116, 139), w - dp(16f), false) // #337 footer chips
     }
 
     private fun screenTitle(c: Canvas, title: String) {
         txt(c, title, w / 2, dp(64f), dp(25f), Color.rgb(165, 243, 252), true)
+        poly(c, w / 2 - dp(118f), dp(56f), dp(4.4f), 4, time * 2.4f, Color.rgb(250, 204, 21)) // #616 every screen title gets flanking gold sparks
+        poly(c, w / 2 + dp(118f), dp(56f), dp(4.4f), 4, -time * 2.4f, Color.rgb(250, 204, 21))
         val bw = dp(110f)
         button(c, RectF(dp(14f), dp(26f), dp(14f) + bw, dp(26f) + dp(42f)), "◀ BACK", Color.rgb(30, 41, 59), Color.WHITE, 14f, "back")
     }
@@ -3098,7 +3796,7 @@ class GameView(context: Context) : View(context) {
             "🛒 SHOP" to "Banked gems unlock new heroes & weapons — permanently.",
             "🔥 COMBO" to "Chain kills within 2.5s to multiply your score — up to ×5!",
             "⭐ ELITES" to "Gold-ringed elites are tougher but drop triple loot.",
-            "💚 HEARTS" to "Brutes, elites and bosses drop hearts that heal 15 HP.",
+            "❤️ HEARTS" to "Elites and bosses sometimes drop a red heart that heals 15 HP. Rare — grab it!",
             "🩸 BUILD SYNERGY" to "Vampire + Frost + Split Shot stacks turn crowds into health.",
             "⏸️ PAUSE" to "Tap ❚❚ top-right anytime. Combo & boss bars live in the HUD.",
             "💀 DEATH" to "You keep every banked gem. Upgrade, then run it again."
@@ -3144,6 +3842,8 @@ class GameView(context: Context) : View(context) {
         }
         if (cyc in 0.35f..0.55f) for (g in 1..3) poly(c, hx - g * dp(16f), trackY, dp(17f), 4, 0.78f, Color.argb(120 - g * 30, 34, 211, 238))
         poly(c, w * 0.55f, trackY, dp(15f), 3, time * 2f, Color.rgb(239, 68, 68))
+        p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.6f); p.color = Color.rgb(239, 68, 68); p.alpha = (60 + 45 * sin(time * 5f)).toInt().coerceIn(15, 105); c.drawCircle(w * 0.55f, trackY, dp(21f) * (1f + 0.08f * sin(time * 5f)), p); p.style = Paint.Style.FILL; p.alpha = 255 // #708 the demo hazard wears a warning ring
+        if (cyc in 0.35f..0.5f) poly(c, hx - dp(24f), trackY, dp(9f) * (1f + 0.3f * sin(time * 31f)), 3, 3.14159f, Color.rgb(249, 115, 22)) // #709 a jet flame flickers behind the dashing gem
         poly(c, hx, trackY, dp(19f), 4, 0.78f, CHARS[save.selectedChar].color)
         poly(c, hx, trackY, dp(10f), 4, 0.78f, Color.rgb(168, 85, 247))
         txt(c, if (cyc in 0.35f..0.5f) "💨 DASH! invincible!" else "walk… then DASH through danger", w / 2, trackY + dp(64f), dp(14f), Color.rgb(165, 243, 252), true)
@@ -3159,6 +3859,7 @@ class GameView(context: Context) : View(context) {
         var y = dp(208f)
         for (i in 0..23) {
             val nm = UPGRADE_NAMES[i]
+            if (i % 2 == 0) { p.color = Color.rgb(88, 28, 135); p.alpha = 22; c.drawRect(dp(16f), y - dp(15f), w - dp(16f), y + dp(8f), p); p.alpha = 255 } // #710 zebra tint steadies the gallery rows
             txt(c, nm.substringBefore(' '), dp(34f), y, dp(14f), Color.WHITE)
             txtL(c, nm.substringAfter(' '), dp(62f), y, dp(12.5f), Color.WHITE, true)
             txtFitL(c, UPGRADE_DESCS[i], dp(186f), y, dp(10.5f), Color.rgb(148, 163, 184), w - dp(10f))
@@ -3190,6 +3891,7 @@ class GameView(context: Context) : View(context) {
             y += dp(40f)
         }
         txt(c, "👑 Abyss Warden — boss every 5 waves", w / 2, y + dp(16f), dp(13.5f), Color.rgb(244, 114, 182), true)
+        (0 until 2).forEach { k -> val sx3 = w / 2 + (if (k == 0) -1f else 1f) * dp(172f); poly(c, sx3, y + dp(7f), dp(4.2f), 4, time * 3.4f + k * 1.9f, Color.rgb(244, 114, 182)) } // #711 pink sparks flank the Warden's gallery line
     }
 
     private fun charCost(i: Int): Int {
@@ -3214,6 +3916,7 @@ class GameView(context: Context) : View(context) {
         val tr = dp(9f) + dp(4f) * (if (sliderDrag == id) sliderGrow else 0f)
         p.color = Color.WHITE; c.drawCircle(r.left + r.width() * f, r.centerY(), tr, p)
         p.color = col; c.drawCircle(r.left + r.width() * f, r.centerY(), tr * 0.55f, p)
+        p.color = Color.WHITE; p.alpha = 220; c.drawCircle(r.left + r.width() * f - tr * 0.2f, r.centerY() - tr * 0.2f, tr * 0.16f, p); p.alpha = 255 // #720 slider thumbs catch a glint
     }
 
     private fun perkCost(key: String): Int = when (key) {
@@ -3234,6 +3937,7 @@ class GameView(context: Context) : View(context) {
             val r = RectF(dp(14f), y, w - dp(14f), y + dp(56f))
             roundRect(c, r, dp(12f), if (sel) Color.rgb(23, 37, 84) else Color.rgb(17, 12, 34), 235)
             p.color = chd.color; p.alpha = 46; c.drawCircle(dp(40f), y + dp(28f), dp(18f), p); p.alpha = 255
+            if (sel) for (k in 0 until 2) { val sa3 = time * 2.6f + k * 3.1416f + i * 1.3f; poly(c, dp(40f) + cos(sa3) * dp(21f), y + dp(28f) + sin(sa3) * dp(21f), dp(2.8f), 4, sa3, chd.color) } // #654 the equipped hero's portrait sparkles
             txt(c, chd.icon, dp(40f), y + dp(34f), dp(17f), Color.WHITE)
             txtL(c, chd.name + if (sel) "  ✔ EQUIPPED" else "", dp(70f), y + dp(21f), dp(15.5f), Color.WHITE, true)
             txtFitL(c, if (owned || save.gemBank >= cost) chd.desc else "🔒 Earn 💎 ${cost - save.gemBank} more to unlock", dp(70f), y + dp(41f), dp(11f), Color.rgb(148, 163, 184), w - dp(126f))
@@ -3251,11 +3955,14 @@ class GameView(context: Context) : View(context) {
             txtL(c, label, dp(28f), yy, dp(12f), Color.rgb(203, 213, 225), true)
             roundRect(c, RectF(dp(92f), yy - dp(9f), w - dp(120f), yy - dp(2f)), dp(3f), Color.rgb(30, 10, 40), 220)
             if (frac > 0) roundRect(c, RectF(dp(92f), yy - dp(9f), dp(92f) + (w - dp(212f)) * frac.coerceIn(0f, 1f), yy - dp(2f)), dp(3f), col)
+            if (frac > 0) { p.color = Color.WHITE; p.alpha = 200; c.drawCircle(dp(92f) + (w - dp(212f)) * frac.coerceIn(0f, 1f), yy - dp(5.5f), dp(1.8f), p); p.alpha = 255 } // #656 stat bars cap with a bright tip
         }
         bar("HP", chd.hp / 140f, y + dp(54f), Color.rgb(74, 222, 128))
         bar("SPD", chd.spd / 1.4f, y + dp(83f), Color.rgb(34, 211, 238))
         bar("DMG", chd.dmg / 1.2f, y + dp(112f), Color.rgb(244, 114, 182))
         txtL(c, "🌊 Best wave with ${chd.name}: ${save.bestWaveChar(save.selectedChar)}", dp(28f), y + dp(138f), dp(12f), Color.rgb(148, 163, 184))
+        if (save.bestWaveChar(save.selectedChar) > 0) poly(c, dp(20f), y + dp(134f), dp(3.4f), 4, time * 3.4f, Color.rgb(96, 165, 250)) // #731 a wave spark marks your best run with this hero
+        poly(c, w - dp(34f), y + dp(134f), dp(3.6f), 4, time * 2.2f, Color.rgb(34, 211, 238)) // #661 a spark marks the hero's best-wave line
         button(c, RectF(dp(14f), h - dp(76f), w - dp(14f), h - dp(20f)), "🏠  MENU", Color.rgb(71, 85, 105), Color.WHITE, 15f, "back")
     }
 
@@ -3269,6 +3976,7 @@ class GameView(context: Context) : View(context) {
             val r = RectF(dp(14f), y, w - dp(14f), y + dp(56f))
             roundRect(c, r, dp(12f), if (sel) Color.rgb(23, 37, 84) else Color.rgb(17, 12, 34), 235)
             p.color = wpd.color; p.alpha = 46; c.drawCircle(dp(40f), y + dp(28f), dp(18f), p); p.alpha = 255
+            if (sel) for (k in 0 until 2) { val sa4 = time * 2.6f + k * 3.1416f + i * 1.7f; poly(c, dp(40f) + cos(sa4) * dp(21f), y + dp(28f) + sin(sa4) * dp(21f), dp(2.8f), 4, sa4, wpd.color) } // #655 the equipped weapon's icon sparkles
             txt(c, wpd.icon, dp(40f), y + dp(34f), dp(17f), Color.WHITE)
             txtL(c, wpd.name + if (sel) "  ✔ EQUIPPED" else "", dp(70f), y + dp(21f), dp(15f), Color.WHITE, true)
             txtFitL(c, if (owned || save.gemBank >= wpd.cost) "DMG ${wpd.dmg.toInt()} • ${wpd.rate}/s • pierce ${wpd.pierce}" else "🔒 Earn 💎 ${wpd.cost - save.gemBank} more to unlock", dp(70f), y + dp(41f), dp(11f), Color.rgb(148, 163, 184), w - dp(126f))
@@ -3287,8 +3995,10 @@ class GameView(context: Context) : View(context) {
         txtL(c, "DPS", dp(28f), y + dp(54f), dp(12f), Color.rgb(203, 213, 225), true)
         roundRect(c, RectF(dp(92f), y + dp(45f), w - dp(120f), y + dp(52f)), dp(3f), Color.rgb(30, 10, 40), 220)
         roundRect(c, RectF(dp(92f), y + dp(45f), dp(92f) + (w - dp(212f)) * (dps / maxDps), y + dp(52f)), dp(3f), Color.rgb(244, 114, 182))
+        p.color = Color.WHITE; p.alpha = 200; c.drawCircle(dp(92f) + (w - dp(212f)) * (dps / maxDps), y + dp(48.5f), dp(1.8f), p); p.alpha = 255 // #657 the DPS bar caps with a bright tip
         txtFitL(c, "DPS ${dps.toInt()} • DMG ${wpd.dmg} • RATE ${wpd.rate}/s • PELLETS ${wpd.pellets} • PIERCE ${wpd.pierce}", dp(28f), y + dp(82f), dp(12f), Color.rgb(148, 163, 184), w - dp(28f))
         txtL(c, "Shop price: ${if (save.ownsWeapon(save.selectedWeapon)) "owned" else "💎 ${wpd.cost}"}", dp(28f), y + dp(106f), dp(12f), Color.rgb(148, 163, 184))
+        if (!save.ownsWeapon(save.selectedWeapon) && save.gemBank >= wpd.cost) poly(c, w - dp(34f), y + dp(102f), dp(3.6f), 4, time * 3f, Color.rgb(52, 211, 153)) // #662 you can afford it — the price line sparkles
         button(c, RectF(dp(14f), h - dp(76f), w - dp(14f), h - dp(20f)), "🏠  MENU", Color.rgb(71, 85, 105), Color.WHITE, 15f, "back")
     }
 
@@ -3301,6 +4011,7 @@ class GameView(context: Context) : View(context) {
             Triple("👑", "BOSSES & THE SHOP", "An Abyss Warden rises every 5 waves.\nSurvive all 20 to win! Banked gems unlock\nheroes, weapons & perks — forever.")
         )
         val (icon, title, body) = tips[onboardPage]
+        p.style = Paint.Style.STROKE; p.strokeWidth = dp(2f); p.color = Color.rgb(250, 204, 21); p.alpha = (50 + 30 * sin(time * 2.6f)).toInt().coerceIn(20, 80); c.drawCircle(w / 2, h * 0.32f - dp(19f), dp(44f) * (1f + 0.04f * sin(time * 2.6f)), p); p.style = Paint.Style.FILL; p.alpha = 255 // #705 a gold halo breathes behind the welcome icon
         txt(c, icon, w / 2, h * 0.32f, dp(54f), Color.WHITE)
         txt(c, title, w / 2, h * 0.32f + dp(58f), dp(21f), Color.rgb(250, 204, 21), true)
         val blines = body.split("\n")
@@ -3315,7 +4026,7 @@ class GameView(context: Context) : View(context) {
         screenTitle(c, "✨ WHAT'S NEW")
         var y = dp(150f)
         val items = listOf(
-            "🎮 400 upgrades across every system in the game",
+            "🎮 736 upgrades across every system in the game",
             "⏩ Continue Run — pause mid-run, resume from the menu",
             "🦸 Hero & Weapon screens with stat cards + unlock hints",
             "🎒 Shop tabs incl. Items — bank reroll tokens for a run",
@@ -3323,7 +4034,7 @@ class GameView(context: Context) : View(context) {
             "🏅 Victory ranks S/A/B/C, daily seeds & share codes",
             "🕹️ Joystick size + side, graphics quality, shake toggle"
         )
-        for (t in items) { txtL(c, t, dp(26f), y, dp(13f), Color.rgb(226, 232, 240)); y += dp(30f) }
+        for (t in items) { poly(c, dp(16f), y - dp(4f), dp(3.6f), 4, time * 2.4f, Color.rgb(250, 204, 21)); txtL(c, t, dp(26f), y, dp(13f), Color.rgb(226, 232, 240)); y += dp(30f) } // #706 gold bullets spin beside each What's New line
         button(c, RectF(w * 0.2f, y + dp(18f), w * 0.8f, y + dp(72f)), "▶ LET'S GO", Color.rgb(22, 163, 74), Color.WHITE, 16f, "wnok")
     }
 
@@ -3332,8 +4043,9 @@ class GameView(context: Context) : View(context) {
         screenTitle(c, "ℹ️ ABOUT")
         var y = dp(150f)
         txt(c, "GEMSTORM 💎", w / 2, y, dp(26f), Color.rgb(165, 243, 252), true); y += dp(36f)
+        (0 until 3).forEach { k -> val oa = time * 1.8f + k * 2.09f; poly(c, w / 2 + cos(oa) * dp(118f), dp(141f) + sin(oa) * dp(10f), dp(3.4f), 4, oa * 2f, Color.rgb(250, 204, 21)) } // #707 sparkles orbit the About title
         val ver = try { context.packageManager.getPackageInfo(context.packageName, 0).versionName } catch (_: Exception) { "2.0.0" }
-        txt(c, "Neon Abyss — version $ver (424-upgrade edition)", w / 2, y, dp(14f), Color.rgb(203, 213, 225)); y += dp(48f)
+        txt(c, "Neon Abyss — version $ver (736-upgrade edition)", w / 2, y, dp(14f), Color.rgb(203, 213, 225)); y += dp(48f)
         txtL(c, "Built by Nathan Clark — QamoTech 💎N🎱", dp(28f), y, dp(14.5f), Color.WHITE, true); y += dp(28f)
         txtL(c, "Kotlin + Android Canvas. Zero dependencies.", dp(28f), y, dp(13.5f), Color.rgb(148, 163, 184)); y += dp(24f)
         txtL(c, "All music & SFX composed in-engine — synthesized, never sampled.", dp(28f), y, dp(13.5f), Color.rgb(148, 163, 184)); y += dp(24f)
@@ -3350,6 +4062,7 @@ class GameView(context: Context) : View(context) {
             poly(c, sx2, sy2, dp(5f), 4, time * 3f + i, Color.rgb(250, 204, 21))
         }
         p.alpha = 255
+        p.color = Color.rgb(250, 204, 21); p.alpha = (26 + 18 * sin(time * 3f)).toInt().coerceIn(8, 44); c.drawCircle(w - dp(52f), dp(55f), dp(26f), p); p.alpha = 255 // #581 the gem bank glows softly
         txtR(c, "💎 ${save.gemBank}", w - dp(16f), dp(62f), dp(18f), Color.rgb(52, 211, 153), true)
         val tabW = (w - dp(178f)) / 4 // tabs + 3 gaps end before the sort toggle — no overlap
         val tabNames = arrayOf("🦸 HEROES", "🔫 WEAPONS", "✨ PERKS", "🎒 ITEMS")
@@ -3357,8 +4070,10 @@ class GameView(context: Context) : View(context) {
             val tx = dp(14f) + t * (tabW + dp(8f))
             button(c, RectF(tx, dp(82f), tx + tabW, dp(130f)), tabNames[t], // #380
                 if (shopTab == t) Color.rgb(124, 58, 237) else Color.rgb(30, 41, 59), Color.WHITE, 11.5f, "tab:$t")
+            if (shopTab == t) { p.color = Color.rgb(250, 204, 21); p.alpha = (150 + 80 * sin(time * 4f)).toInt().coerceIn(70, 230); c.drawCircle(tx + tabW / 2, dp(122f), dp(2.4f), p); p.alpha = 255 } // #690 the active shop tab wears a gold bead
         }
         button(c, RectF(w - dp(132f), dp(82f), w - dp(14f), dp(130f)), if (save.shopSort) "↕ PRICE ✓" else "↕ PRICE", if (save.shopSort) Color.rgb(124, 58, 237) else Color.rgb(30, 41, 59), Color.WHITE, 12f, "sorttoggle") // #341 + #380
+        if (save.shopSort) poly(c, w - dp(73f), dp(140f), dp(3.6f), 4, time * 3.6f, Color.rgb(250, 204, 21)) // #732 the price-sort toggle sparkles while active
         var y = dp(146f)
         if (shopTab == 0 && save.heroDiscount) {
             txt(c, "🏷️ BOSS BONUS: 25% OFF your next hero!", w / 2, y, dp(13f), Color.rgb(250, 204, 21), true)
@@ -3377,6 +4092,7 @@ class GameView(context: Context) : View(context) {
                     if (sel) { p.style = Paint.Style.STROKE; p.strokeWidth = dp(2f); p.color = chd.color; c.drawRoundRect(r, dp(12f), dp(12f), p); p.style = Paint.Style.FILL }
                     p.color = chd.color; p.alpha = 46
                     c.drawCircle(dp(40f), y + dp(32f), dp(19f), p); p.alpha = 255
+                    if (!owned && save.gemBank >= cost) poly(c, r.right - dp(14f), r.top + dp(12f), dp(4f), 4, time * 3f, Color.rgb(52, 211, 153)) // #689 affordable heroes wink a gem in the corner
                     txt(c, chd.icon, dp(40f), y + dp(38f), dp(17f), Color.WHITE)
                     txtFitL(c, chd.name + if (sel) "  ✔ EQUIPPED" else "", dp(70f), y + dp(24f), dp(16f), Color.WHITE, w - dp(126f), true) // #340
                     txtFitL(c, "HP ${chd.hp.toInt()} • SPD ×${chd.spd} • DMG ×${chd.dmg} — ${chd.desc}", dp(70f), y + dp(46f), dp(11f), Color.rgb(148, 163, 184), w - dp(126f))
@@ -3467,6 +4183,7 @@ class GameView(context: Context) : View(context) {
             }
         }
         txt(c, "Unlocks are permanent. Earn gems in every run — win or lose.", w / 2, y + dp(14f), dp(12f), Color.rgb(100, 116, 139))
+        (0 until 2).forEach { k -> poly(c, w / 2 + (if (k == 0) -1f else 1f) * dp(182f), y + dp(10f), dp(3.2f), 4, time * 3f + k * 1.9f, Color.rgb(52, 211, 153)) } // #721 gems flank the shop footer
     }
 
     private fun drawSettings(c: Canvas) {
@@ -3480,6 +4197,7 @@ class GameView(context: Context) : View(context) {
         if (save.musicVol > 0) roundRect(c, RectF(musicSlider.left, musicSlider.top, musicSlider.left + musicSlider.width() * save.musicVol, musicSlider.bottom), dp(15f), Color.rgb(168, 85, 247))
         sliderGrow += ((if (sliderDrag != null) 1f else 0f) - sliderGrow) * 0.3f // #176 thumb grows while dragging
         val mThumbR = dp(10f) + dp(5f) * (if (sliderDrag == "music") sliderGrow else 0f)
+        p.color = Color.rgb(168, 85, 247); p.alpha = 36; c.drawCircle(musicSlider.left + musicSlider.width() * save.musicVol, musicSlider.centerY(), mThumbR + dp(5f), p); p.alpha = 255 // #718 the music thumb glows purple
         p.color = Color.WHITE; c.drawCircle(musicSlider.left + musicSlider.width() * save.musicVol, musicSlider.centerY(), mThumbR, p)
         p.color = Color.rgb(168, 85, 247); c.drawCircle(musicSlider.left + musicSlider.width() * save.musicVol, musicSlider.centerY(), mThumbR * 0.55f, p)
         txt(c, "${(save.musicVol * 100).toInt()}%${when { save.musicVol <= 0.01f -> " • OFF"; save.musicVol < 0.4f -> " • LOW"; save.musicVol < 0.75f -> " • MED"; else -> " • MAX" }}", w / 2, y + dp(20f), dp(12.5f), Color.WHITE, true)
@@ -3489,6 +4207,7 @@ class GameView(context: Context) : View(context) {
         roundRect(c, sfxSlider, dp(15f), Color.rgb(30, 20, 50))
         if (save.sfxVol > 0) roundRect(c, RectF(sfxSlider.left, sfxSlider.top, sfxSlider.left + sfxSlider.width() * save.sfxVol, sfxSlider.bottom), dp(15f), Color.rgb(34, 211, 238))
         val sThumbR = dp(10f) + dp(5f) * (if (sliderDrag == "sfx") sliderGrow else 0f)
+        p.color = Color.rgb(34, 211, 238); p.alpha = 36; c.drawCircle(sfxSlider.left + sfxSlider.width() * save.sfxVol, sfxSlider.centerY(), sThumbR + dp(5f), p); p.alpha = 255 // #719 the sfx thumb glows cyan
         p.color = Color.WHITE; c.drawCircle(sfxSlider.left + sfxSlider.width() * save.sfxVol, sfxSlider.centerY(), sThumbR, p)
         p.color = Color.rgb(34, 211, 238); c.drawCircle(sfxSlider.left + sfxSlider.width() * save.sfxVol, sfxSlider.centerY(), sThumbR * 0.55f, p)
         txt(c, "${(save.sfxVol * 100).toInt()}%${when { save.sfxVol <= 0.01f -> " • OFF"; save.sfxVol < 0.4f -> " • LOW"; save.sfxVol < 0.75f -> " • MED"; else -> " • MAX" }}", w / 2, y + dp(20f), dp(12.5f), Color.WHITE, true)
@@ -3566,6 +4285,7 @@ class GameView(context: Context) : View(context) {
             c.drawCircle(pvx + dp(70f), pvy, dp(38f) * save.btnScale, p); p.alpha = 255
             txt(c, "💨", pvx + dp(70f), pvy + dp(8f), dp(20f), Color.WHITE)
             txt(c, "🎛 LIVE PREVIEW", pvx, pvy + dp(84f), dp(12f), Color.rgb(250, 204, 21), true)
+            (0 until 2).forEach { k -> poly(c, pvx + (if (k == 0) -1f else 1f) * dp(74f), pvy + dp(80f), dp(3f), 4, time * 3.2f + k * 1.9f, Color.rgb(250, 204, 21)) } // #722 sparks flank the live preview label
         }
     }
 
@@ -3584,7 +4304,7 @@ class GameView(context: Context) : View(context) {
             "📅 Daily best" to "${save.dailyBest}",
             "🔥 Best combo" to "${save.bestCombo}",
             "⭐ Elites slain" to "${save.elitesSlain}",
-            "💚 Hearts collected" to "${save.heartsCollected}",
+            "❤️ Hearts collected" to "${save.heartsCollected}",
             "⏱ Total playtime" to "${save.totalPlaytime / 3600}h ${(save.totalPlaytime % 3600) / 60}m",
             "🧑‍🚀 Hero" to "${CHARS[save.selectedChar].icon} ${CHARS[save.selectedChar].name}",
             "🔫 Weapon" to "${WEAPONS[save.selectedWeapon].icon} ${WEAPONS[save.selectedWeapon].name}",
@@ -3596,6 +4316,7 @@ class GameView(context: Context) : View(context) {
         for ((ri, row) in rows.withIndex()) {
             val (k, v) = row
             roundRect(c, RectF(dp(16f), y - dp(24f), w - dp(16f), y + dp(12f)), dp(10f), Color.rgb(17, 12, 34), 220)
+            p.color = CHARS[save.selectedChar].color; p.alpha = 90; c.drawRect(dp(16f), y - dp(24f), dp(19f), y + dp(12f), p); p.alpha = 255 // #713 stat cards wear a hero-color spine
             txtL(c, k, dp(28f), y, dp(15.5f), Color.rgb(226, 232, 240), true)
             txtR(c, v, w - dp(28f), y, dp(15.5f), Color.rgb(52, 211, 153), true)
             val barFrac = when (k) {
@@ -3609,6 +4330,7 @@ class GameView(context: Context) : View(context) {
                 val bEase = 1f - (1f - bAnim) * (1f - bAnim)
                 roundRect(c, RectF(dp(28f), y + dp(5f), w - dp(28f), y + dp(9f)), dp(2f), Color.rgb(30, 10, 40), 200)
                 if (barFrac > 0) roundRect(c, RectF(dp(28f), y + dp(5f), dp(28f) + (w - dp(56f)) * barFrac * bEase, y + dp(9f)), dp(2f), Color.rgb(52, 211, 153))
+                if (barFrac > 0) { p.color = Color.WHITE; p.alpha = 200; c.drawCircle(dp(28f) + (w - dp(56f)) * barFrac * bEase, y + dp(7f), dp(2.2f), p); p.alpha = 255 } // #714 stat bars cap with a bright tip
             }
             y += dp(38f)
         }
@@ -3621,6 +4343,7 @@ class GameView(context: Context) : View(context) {
             txtL(c, "${CHARS[i].icon} ${CHARS[i].name}", dp(28f), y, dp(13f), Color.rgb(226, 232, 240), true)
             roundRect(c, RectF(dp(150f), y - dp(10f), w - dp(90f), y - dp(3f)), dp(3f), Color.rgb(30, 10, 40), 200)
             if (rc > 0) roundRect(c, RectF(dp(150f), y - dp(10f), dp(150f) + (w - dp(240f)) * (rc.toFloat() / maxRuns), y - dp(3f)), dp(3f), CHARS[i].color)
+            if (rc == maxRuns && rc > 0) poly(c, dp(150f) + (w - dp(240f)) + dp(8f), y - dp(6.5f), dp(3.2f), 4, time * 3f, Color.rgb(250, 204, 21)) // #715 your most-played hero's bar wears a gold star
             txtR(c, "$rc", w - dp(28f), y, dp(13f), Color.rgb(52, 211, 153), true)
             y += dp(22f)
         }
