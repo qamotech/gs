@@ -768,3 +768,67 @@ after gradlew assembleDebug passes on the Dell; emulator spot checks at
 - ✅ **#734** Studs pin the pause RESUME button's corners
 - ✅ **#735** A gold rule underlines ELITE DOWN
 - ✅ **#736** A gold heart spins in the shell gem on boss waves
+- ✅ **#737** An inner ring gives the turtle dome depth
+- ✅ **#738** Glints ride the shell rim
+- ✅ **#739** A halo rings the shell gem
+- ✅ **#740** The level-up warning ring echoes inside itself
+- ✅ **#741** Sparks spit from the jet nozzles
+- ✅ **#742** The boss dread ring echoes inside itself
+- ✅ **#743** Frost crystals cap with white tips
+- ✅ **#744** The chaser wears an inset triangle
+- ✅ **#745** The brute wears an inset hexagon
+- ✅ **#746** The weaver wears an inset pentagon
+- ✅ **#747** The bulwark wears an inset hexagon
+- ✅ **#748** The Warden crown's center spike glints
+- ✅ **#749** A pompom caps the gnome's hat
+- ✅ **#750** A white speck hearts every enemy core
+- ✅ **#751** A hot spot rides the rim light
+- ✅ **#752** The HP bar wears segment ticks
+- ✅ **#753** The HP bar's tip glows
+- ✅ **#754** Finer eighth ticks resolve the XP bar
+- ✅ **#755** Twin sparks mark a 100+ combo
+- ✅ **#756** End caps pin the wave progress bar
+- ✅ **#757** The progress turtle kicks a wake dot
+- ✅ **#758** A ring pops off the gem counter
+- ✅ **#759** A gold bead marks the Warden's halfway point
+- ✅ **#760** Screws pin the pause button's corners
+- ✅ **#761** A hairline ring rims the nebula core
+- ✅ **#762** An inner diamond counter-turns in the meteor crosshair
+- ✅ **#763** A white speck hearts every fire pool
+- ✅ **#764** A dark rim rings every poison pool
+- ✅ **#765** Fresh scorch glows at the center
+- ✅ **#766** Glinting dust motes trail a smaller twin
+- ✅ **#767** Every spark trails a fading twin
+- ✅ **#768** A facet line splits every gem
+- ✅ **#769** A pale inner heart glows inside every health drop
+- ✅ **#770** A gold rule underlines LEVEL UP
+- ✅ **#771** Diamonds flank the PAUSED title
+- ✅ **#772** A halo breathes around ENTER THE ABYSS
+- ✅ **#773** Gems pin the menu footer corners
+- ✅ **#774** A gem spins on the settings preview stick
+- ✅ **#775** A gold ring honors a 10+ best wave
+- ✅ **#776** A violet twin sparkles under the sort toggle
+- ✅ **#777** Dots flank the About version line
+- ✅ **#778** Cardinal ticks stud the countdown ring
+- ✅ **#779** A twin diamond answers on the Warden banner's right
+- ✅ **#780** End ticks cap the ELITE DOWN rule
+- ✅ **#781** A white cap crowns a full rocket rack
+- ✅ **#782** A bright tip rides the dash recharge arc
+- ✅ **#783** Tick dots stud the stick's halo
+- ✅ **#784** Diamonds cap the menu title rule
+- ✅ **#785** Rocket impacts leave the ground burning (a fire pool)
+- ✅ **#786** Flawless Wave bonus: clear a wave untouched, +25💎
+- ✅ **#787** Cryo Shatter: deep-frozen foes take +50% damage
+- ✅ **#788** Elite bounty: every elite drops 3 bonus gems
+- ✅ **#789** Speed Bonus: clear a wave in under 25s, +10💎
+- ✅ **#790** Gem Rush: every 50th gem collected drops a +25 bonus gem
+- ✅ **#791** Share Score button on the end screen
+- ✅ **#792** Combo Saver: once a run, a 75+ combo halves instead of dying
+- ✅ **#793** Animated opening sequence (gem fall → title slam → turtle flyby, tap to skip)
+- ✅ **#794** Every screen title gets a sweeping gold underline
+- ✅ **#795** Corner brackets frame every screen title
+- ✅ **#796** Every button gets a shadow lip for depth
+- ✅ **#797** Twin rings orbit the menu title
+- ✅ **#798** The menu ticker scrolls on a backing pill
+- ✅ **#799** A divider hairline with a center gem rules the menu footer
+- ✅ **#800** A breathing ring rims every menu medallion
