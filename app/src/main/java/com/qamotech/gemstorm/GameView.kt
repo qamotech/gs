@@ -2989,15 +2989,7 @@ class GameView(context: Context) : View(context) {
                 p.strokeWidth = dp(1.4f); p.alpha = 90; c.drawCircle(px, py, (dp(30f) + (0.16f - dashT) * dp(120f)) * 0.72f, p) // #623 the dash ring echoes inside itself
                 p.style = Paint.Style.FILL; p.alpha = 255
             }
-            // #34 level badge
-            p.color = Color.rgb(124, 58, 237)
-            c.drawCircle(px + dp(17f), py + dp(15f), dp(9f), p)
-            if (level >= 10) { // #430 gold ring for double-digit captains
-                p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.6f); p.color = Color.rgb(250, 204, 21)
-                c.drawCircle(px + dp(17f), py + dp(15f), dp(10f), p); p.style = Paint.Style.FILL
-            }
-            if (xpNext > 0 && xp.toFloat() / xpNext > 0.9f) { p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.8f); p.color = Color.rgb(250, 204, 21); p.alpha = (120 + 100 * sin(time * 7f)).toInt().coerceIn(20, 220); c.drawCircle(px + dp(17f), py + dp(15f), dp(11.5f), p); p.style = Paint.Style.FILL; p.alpha = 255 } // #593 your level badge burns gold near a level-up
-            txt(c, "$level", px + dp(17f), py + dp(18.5f), dp(10f), Color.WHITE, true)
+            // v2.6.1: the #34 level badge is OFF the hero (Nathan) — level is designated in the HUD beside the XP bar; #430/#593 badge rings went with it
         }
 
         // #102/#86 meteors: shadow telegraph + falling streak
@@ -3855,7 +3847,7 @@ class GameView(context: Context) : View(context) {
         }
         p.color = Color.rgb(100, 116, 139); p.alpha = 60; c.drawRect(dp(24f), h - dp(33f), w - dp(24f), h - dp(32f), p); p.alpha = 255 // #799 a divider hairline rules the footer
         poly(c, cx, h - dp(32.5f), dp(3.4f), 4, time * 3f, Color.rgb(52, 211, 153))
-        txtFitC(c, "💎 ${save.gemBank}  •  🌊 Best wave ${save.bestWave}  •  by QamoTech 💎N🎱  •  v2.6 — 800-upgrade edition", cx, h - dp(18f), dp(11.5f), Color.rgb(100, 116, 139), w - dp(16f), false) // #337 footer chips
+        txtFitC(c, "💎 ${save.gemBank}  •  🌊 Best wave ${save.bestWave}  •  by QamoTech 💎N🎱  •  v2.6.1 — 800-upgrade edition", cx, h - dp(18f), dp(11.5f), Color.rgb(100, 116, 139), w - dp(16f), false) // #337 footer chips
         (0 until 2).forEach { k -> poly(c, (if (k == 0) dp(14f) else w - dp(14f)), h - dp(18f), dp(3.2f), 4, time * 3f + k * 1.9f, Color.rgb(52, 211, 153)) } // #773 gems pin the menu footer corners
     }
 

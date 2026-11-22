@@ -41,7 +41,7 @@ after gradlew assembleDebug passes on the Dell; emulator spot checks at
 - ✅ **#31** Pickup magnet radius ring (fades in on move)
 - ✅ **#32** Heart drops get green cross icon overlay
 - ✅ **#33** XP gems brighten as magnet engages
-- ✅ **#34** Player level badge on hero
+- ✅ **#34** Player level badge on hero — RETIRED in v2.6.1 (Nathan): badge off the hero; level is designated in the HUD beside the XP bar
 - ✅ **#35** Run timer in HUD (toggleable)
 - ✅ **#36** Best combo shown live under combo meter
 - ✅ **#37** Wave progress pips (enemies left)
@@ -461,7 +461,7 @@ after gradlew assembleDebug passes on the Dell; emulator spot checks at
 - ✅ **#427** Warm star mix — half the sky burns gold, half cyan
 - ✅ **#428** Engine trail sparks stream behind the ship while it moves
 - ✅ **#429** Thruster flame grows with ship speed
-- ✅ **#430** Gold ring on the level badge at level 10+
+- ✅ **#430** Gold ring on the level badge at level 10+ — retired with the badge in v2.6.1
 - ✅ **#431** Visor glint drifts — the hero's eye feels alive
 - ✅ **#432** Damage-ghost HP bars — a white segment drains behind the green after hits
 - ✅ **#433** Brute armor rivets catch a glint of light
@@ -624,7 +624,7 @@ after gradlew assembleDebug passes on the Dell; emulator spot checks at
 - ✅ **#590** Level-up vacuum streams burn white at the tip
 - ✅ **#591** An echo numeral ghosts behind the countdown
 - ✅ **#592** GET READY pulses on the resume countdown
-- ✅ **#593** Your level badge burns gold when a level-up is close
+- ✅ **#593** Your level badge burns gold when a level-up is close — retired with the badge in v2.6.1
 - ✅ **#594** The HUD LV label runs gold near a level
 - ✅ **#595** A bead rides the heart's red thread
 - ✅ **#596** The Warden's off-screen arrow wears a pulsing halo
