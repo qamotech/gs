@@ -186,6 +186,7 @@ class AudioManager(private val context: Context, private val save: SaveData) {
     }
 
     fun sfx(name: String, rate: Float = 1.0f, volMul: Float = 1.0f) {
+        if (released) return // #848 v2.7: never play into a released SoundPool (throws on some devices)
         if (save.muteAll) return
         val id = ids[name] ?: return
         if (save.sfxVol <= 0.01f) return
@@ -201,8 +202,12 @@ class AudioManager(private val context: Context, private val save: SaveData) {
         soundPool.play(id, vol, vol, 1, 0, rate)
     }
 
-    fun release() {
+    private var released = false // #848 v2.7
+
+    fun release() { // #848 v2.7: idempotent — a double onDestroy can never double-release the pool
+        if (released) return
+        released = true
         stopMusic()
-        soundPool.release()
+        try { soundPool.release() } catch (_: Exception) { }
     }
 }

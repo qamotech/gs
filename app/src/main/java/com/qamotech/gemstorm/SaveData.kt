@@ -137,11 +137,11 @@ class SaveData(context: Context) {
         set(v) = prefs.edit().putInt("bestEndlessWave", v).apply()
 
     var manualAim: Boolean
-        get() = prefs.getBoolean("manualAim", false)
+        get() = prefs.getBoolean("manualAim", true) // v2.7 (Nathan): manual aim is the default — you aim your own shots
         set(v) = prefs.edit().putBoolean("manualAim", v).apply()
 
     var aimAssist: Int
-        get() = prefs.getInt("aimAssist", 1)
+        get() = prefs.getInt("aimAssist", 0) // v2.7 (Nathan): no snap assist by default — pure manual aim
         set(v) = prefs.edit().putInt("aimAssist", v).apply()
 
     var joySens: Float
@@ -220,8 +220,13 @@ class SaveData(context: Context) {
         set(v) = prefs.edit().putBoolean("heroDiscount", v).apply()
 
     var hardMode: Boolean
-        get() = prefs.getBoolean("hardMode", false)
+        get() = prefs.getBoolean("hardMode", true) // v2.7 (Nathan): hard mode is the default difficulty
         set(v) = prefs.edit().putBoolean("hardMode", v).apply()
+
+    /** v2.7 one-time defaults migration flag (existing saves get the harder defaults once). */
+    var defaultsV27: Boolean
+        get() = prefs.getBoolean("defaultsV27", false)
+        set(v) = prefs.edit().putBoolean("defaultsV27", v).apply()
 
     var dailyBest: Int
         get() = prefs.getInt("dailyBest", 0)
