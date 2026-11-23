@@ -881,3 +881,12 @@ after gradlew assembleDebug passes on the Dell; emulator spot checks at
 - ✅ **#846** Projectiles hard-capped at 300 — rockets are never trimmed
 - ✅ **#847** Settings sliders/scroll guard against zero-pointer touch events
 - ✅ **#848** Audio release is idempotent; SFX never plays into a released pool
+- ✅ **#849** ROOT-CAUSE FIX: SFX playback guarded — SoundPool.play can throw on some devices and sfx() was the one unguarded platform call on the combat hot path (105 call sites); a sound effect can never kill a run again
+- ✅ **#850** Crash-guard net v2: a single caught fault now skips one frame and the run continues; only 5 consecutive faulted frames (a truly broken state) land on the menu
+- ✅ **#851** Crash-guard log now records the exact code line (class.method:line) of every caught fault, shown on the About screen
+- ✅ **#852** Fullscreen audit: immersive-sticky fullscreen + targetSdk 35 re-verified end to end, no letterbox
+- ✅ **#853** Speed audit: zero shadow-blur anywhere in the render path; frame-time auto-graphics (#312) re-verified
+- ✅ **#854** Memory trim completed: beams hard-capped at 24 in trimFx — every FX list now carries a hard cap
+- ✅ **#855** Icon & art check: vector launcher icon (crisp at every density) and in-app art re-verified
+- ✅ **#856** Touch audit: zero-pointer guards (#847) and simultaneous stick + button multi-touch handling re-verified
+- ✅ **#857** Save safety re-verified: install-over keeps the save; pause snapshot + CONTINUE restores a run after force-stop

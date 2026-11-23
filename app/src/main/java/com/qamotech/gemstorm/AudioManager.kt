@@ -205,7 +205,7 @@ class AudioManager(private val context: Context, private val save: SaveData) {
         val crowd = recentPlays.size
         if (crowd > 4) vol *= 1f - min(0.45f, (crowd - 4) * 0.06f)
         vol = min(vol, 0.9f)
-        soundPool.play(id, vol, vol, 1, 0, rate)
+        try { soundPool.play(id, vol, vol, 1, 0, rate) } catch (_: Exception) { } // #849 v2.7.4: SoundPool.play throws on some devices — a sound must never kill a run
     }
 
     private var released = false // #848 v2.7

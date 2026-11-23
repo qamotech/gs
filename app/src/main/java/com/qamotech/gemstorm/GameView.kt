@@ -135,7 +135,7 @@ class GameView(context: Context) : View(context) {
             lastFrame = frameTimeNanos
             if (hitstopT > 0) { hitstopT -= rawDt; choreo.postFrameCallback(this); return } // #203/#204 hitstop freeze frame
             val dt = rawDt * timeScale
-            try { tick(dt) } catch (e: Exception) { logFault("tick", e); softLand() } // v2.7.2: fault net
+            try { tick(dt); tickFaultStreak = 0 } catch (e: Exception) { logFault("tick", e); onTickFault() } // #850 v2.7.4: fault net v2 — a lone fault skips one frame, the run lives
             try { invalidate() } catch (e: Exception) { logFault("frame", e) }
             choreo.postFrameCallback(this)
         }
@@ -148,13 +148,19 @@ class GameView(context: Context) : View(context) {
         if (sig == lastFaultSig) return
         lastFaultSig = sig
         val msg = (e.message ?: "").take(60).replace(';', ',').replace('|', '/')
-        val entry = "${state.name}/$where ${e.javaClass.simpleName}: $msg"
+        val top = e.stackTrace.firstOrNull()?.let { " @${it.className.substringAfterLast('.')}.${it.methodName}:${it.lineNumber}" } ?: "" // #851 v2.7.4: name the exact line
+        val entry = "${state.name}/$where ${e.javaClass.simpleName}: $msg$top"
         val parts = if (save.faultLog.isEmpty()) mutableListOf() else save.faultLog.split(" | ").toMutableList()
         parts.add(entry)
         while (parts.size > 6) parts.removeAt(0)
         save.faultLog = parts.joinToString(" | ")
     }
-    private fun softLand() { // after a caught tick fault, land on the menu instead of dying mid-run
+    private var tickFaultStreak = 0
+    private fun onTickFault() { // #850 v2.7.4: only a fault that repeats frame after frame is a broken state worth landing for
+        tickFaultStreak++
+        if (tickFaultStreak >= 5) { tickFaultStreak = 0; softLand() }
+    }
+    private fun softLand() { // after repeated caught tick faults, land on the menu instead of dying mid-run
         if (state != State.MENU) { try { toMenu() } catch (_: Exception) { state = State.MENU } }
     }
 
@@ -1519,6 +1525,7 @@ class GameView(context: Context) : View(context) {
         while (rings.size > 24) rings.removeAt(0) // #839
         while (blooms.size > 12) blooms.removeAt(0) // #840
         while (decals.size > 30) decals.removeAt(0) // #841
+        while (beams.size > 24) beams.removeAt(0) // #854 v2.7.4: beams capped too — every FX list now has a hard cap
         while (sparks.size > 60) sparks.removeAt(0) // #842
         while (firePools.size > 42) firePools.removeAt(0) // #843
         while (fallShards.size > 40) fallShards.removeAt(0) // #844
@@ -3920,7 +3927,7 @@ drawHeart(c, hd.x, hd.y, r, Color.rgb(239, 68, 68)) // v2.6: one true heart, no 
         p.color = Color.rgb(100, 116, 139); p.alpha = 60; c.drawRect(dp(24f), h - dp(33f), w - dp(24f), h - dp(32f), p); p.alpha = 255 // #799 a divider hairline rules the footer
         poly(c, cx, h - dp(32.5f), dp(3.4f), 4, time * 3f, Color.rgb(52, 211, 153))
         poly(c, cx, h - dp(31f), dp(3.2f) + dp(0.9f) * sin(time * 3f), 4, time * 1.5f, Color.rgb(34, 211, 238)) // #822 a small gem pulses above the menu footer
-        txtFitC(c, "💎 ${save.gemBank}  •  🌊 Best wave ${save.bestWave}  •  by QamoTech 💎N🎱  •  v2.7.3 — 848-upgrade edition", cx, h - dp(18f), dp(11.5f), Color.rgb(100, 116, 139), w - dp(16f), false) // #337 footer chips
+        txtFitC(c, "💎 ${save.gemBank}  •  🌊 Best wave ${save.bestWave}  •  by QamoTech 💎N🎱  •  v2.7.4 — 857-upgrade edition", cx, h - dp(18f), dp(11.5f), Color.rgb(100, 116, 139), w - dp(16f), false) // #337 footer chips
         (0 until 2).forEach { k -> poly(c, (if (k == 0) dp(14f) else w - dp(14f)), h - dp(18f), dp(3.2f), 4, time * 3f + k * 1.9f, Color.rgb(52, 211, 153)) } // #773 gems pin the menu footer corners
     }
 
@@ -4206,7 +4213,7 @@ drawHeart(c, hd.x, hd.y, r, Color.rgb(239, 68, 68)) // v2.6: one true heart, no 
         txt(c, "GEMSTORM 💎", w / 2, y, dp(26f), Color.rgb(165, 243, 252), true); y += dp(36f)
         (0 until 3).forEach { k -> val oa = time * 1.8f + k * 2.09f; poly(c, w / 2 + cos(oa) * dp(118f), dp(141f) + sin(oa) * dp(10f), dp(3.4f), 4, oa * 2f, Color.rgb(250, 204, 21)) } // #707 sparkles orbit the About title
         val ver = try { context.packageManager.getPackageInfo(context.packageName, 0).versionName } catch (_: Exception) { "2.0.0" }
-        txt(c, "Neon Abyss — version $ver (848-upgrade edition)", w / 2, y, dp(14f), Color.rgb(203, 213, 225)); y += dp(48f)
+        txt(c, "Neon Abyss — version $ver (857-upgrade edition)", w / 2, y, dp(14f), Color.rgb(203, 213, 225)); y += dp(48f)
         (0 until 2).forEach { k -> val ax5 = w / 2 + (if (k == 0) -1f else 1f) * dp(158f); p.color = Color.rgb(250, 204, 21); p.alpha = (90 + 60 * sin(time * 3.6f + k * 2.2f)).toInt().coerceIn(30, 150); c.drawCircle(ax5, y - dp(53f), dp(1.8f), p) }; p.alpha = 255 // #777 dots flank the About version line
         txtL(c, "Built by Nathan Clark — QamoTech 💎N🎱", dp(28f), y, dp(14.5f), Color.WHITE, true); y += dp(28f)
         txtL(c, "Kotlin + Android Canvas. Zero dependencies.", dp(28f), y, dp(13.5f), Color.rgb(148, 163, 184)); y += dp(24f)
