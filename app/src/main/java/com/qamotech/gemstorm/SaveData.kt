@@ -228,6 +228,11 @@ class SaveData(context: Context) {
         get() = prefs.getBoolean("defaultsV27", false)
         set(v) = prefs.edit().putBoolean("defaultsV27", v).apply()
 
+    /** v2.7.2 crash-guard log: the last faults the safety nets caught (About screen shows them). */
+    var faultLog: String
+        get() = prefs.getString("faultLog", "") ?: ""
+        set(v) = prefs.edit().putString("faultLog", v).apply()
+
     var dailyBest: Int
         get() = prefs.getInt("dailyBest", 0)
         set(v) = prefs.edit().putInt("dailyBest", v).apply()

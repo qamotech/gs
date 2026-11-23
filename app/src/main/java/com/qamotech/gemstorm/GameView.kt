@@ -51,7 +51,7 @@ class GameView(context: Context) : View(context) {
             CharDef("Bulwark", "🛡️", 190f, 0.82f, 1.18f, 900, Color.rgb(251, 146, 60), "A walking fortress. Slow, hits like a truck."),
             CharDef("Pyro", "🔥", 100f, 1.10f, 1.05f, 1200, Color.rgb(249, 115, 22), "His dash leaves a burning trail."),
             CharDef("Cryo", "❄️", 110f, 0.95f, 1.00f, 1200, Color.rgb(147, 197, 253), "A freezing aura slows nearby foes."),
-            CharDef("💎N🎱 Turtle", "🐢", 130f, 1.02f, 1.02f, 0, Color.rgb(34, 197, 94), "A turtle with jets. Slow is smooth, smooth is fast. Free — a gift from 💎N🎱.")
+            CharDef("Turbo", "🐢", 130f, 1.02f, 1.02f, 0, Color.rgb(34, 197, 94), "A turtle with jets. Slow is smooth, smooth is fast. Free for everyone.")
         )
         val WEAPONS = listOf(
             WeaponDef("Gem Blaster", "🔫", 12f, 4.0f, 950f, 1, 0, 0, Color.rgb(34, 211, 238), "Reliable single shots."),
@@ -135,10 +135,27 @@ class GameView(context: Context) : View(context) {
             lastFrame = frameTimeNanos
             if (hitstopT > 0) { hitstopT -= rawDt; choreo.postFrameCallback(this); return } // #203/#204 hitstop freeze frame
             val dt = rawDt * timeScale
-            tick(dt)
-            invalidate()
+            try { tick(dt) } catch (e: Exception) { logFault("tick", e); softLand() } // v2.7.2: fault net
+            try { invalidate() } catch (e: Exception) { logFault("frame", e) }
             choreo.postFrameCallback(this)
         }
+    }
+
+    // v2.7.2 crash-guard: caught faults are recorded (deduped, capped) and shown on the About screen
+    private var lastFaultSig = ""
+    private fun logFault(where: String, e: Exception) {
+        val sig = "$where:${e.javaClass.simpleName}"
+        if (sig == lastFaultSig) return
+        lastFaultSig = sig
+        val msg = (e.message ?: "").take(60).replace(';', ',').replace('|', '/')
+        val entry = "${state.name}/$where ${e.javaClass.simpleName}: $msg"
+        val parts = if (save.faultLog.isEmpty()) mutableListOf() else save.faultLog.split(" | ").toMutableList()
+        parts.add(entry)
+        while (parts.size > 6) parts.removeAt(0)
+        save.faultLog = parts.joinToString(" | ")
+    }
+    private fun softLand() { // after a caught tick fault, land on the menu instead of dying mid-run
+        if (state != State.MENU) { try { toMenu() } catch (_: Exception) { state = State.MENU } }
     }
 
     // ---------- run state ----------
@@ -256,7 +273,9 @@ class GameView(context: Context) : View(context) {
         isFocusableInTouchMode = true // #366 hardware keyboard input
         contentDescription = "GEMSTORM game canvas" 
         audio.playMusic(R.raw.music_menu)
-        if (!save.ownsChar(5)) save.unlockChar(5) // 💎N🎱 turtle: free for everyone — granted on first v2.3 launch
+        if (!save.ownsChar(5)) save.unlockChar(5) // Turbo turtle: free for everyone — granted on first v2.3 launch
+        save.selectedChar = save.selectedChar.coerceIn(0, CHARS.size - 1) // v2.7.2: stale indices clamped at boot
+        save.selectedWeapon = save.selectedWeapon.coerceIn(0, WEAPONS.size - 1)
         if (!save.defaultsV27) { save.manualAim = true; save.aimAssist = 0; save.hardMode = true; save.defaultsV27 = true } // v2.7 (Nathan): existing players get the harder defaults once — manual aim, no assist, hard mode
     }
 
@@ -459,8 +478,8 @@ class GameView(context: Context) : View(context) {
             audio.sfx("boss")
             vibrate(120)
         } else {
-            toSpawn = 6 + wave * 2
-            spawnInterval = max(0.35f, 1.15f - wave * 0.045f)
+            toSpawn = if (wave == 1) 6 else 6 + wave * 2 // v2.7.3: gentler opener
+            spawnInterval = max(0.35f, 1.3f - wave * 0.05f) // v2.7.3: slower early pour
         }
         if (mutator == 1) spawnInterval *= 0.65f // #119 Gem Rush: faster spawns
         waveTotal = toSpawn + enemies.size
@@ -481,7 +500,7 @@ class GameView(context: Context) : View(context) {
     }
 
     private fun spawnEnemy(forceType: Int = -1) {
-        val hpMul = (1f + (wave - 1) * 0.24f) * (if (save.hardMode) 1.3f else 1f) // #149 hard mode
+        val hpMul = (1f + (wave - 1) * 0.24f) * (if (save.hardMode) 1.15f else 1f) // #149 hard mode
         val spMul = (1f + (wave - 1) * 0.012f) * (1f + 0.1f * xpGreedLvl)
         val type = if (forceType >= 0) forceType else {
             val roll = pickRng().nextFloat()
@@ -500,17 +519,17 @@ class GameView(context: Context) : View(context) {
         }
         val (sx, sy) = spawnPos()
         val e = when (type) {
-            1 -> Enemy(1, sx, sy, 14f * hpMul, 14f * hpMul, 265f * spMul, dp(13f), 8f, 1, 15)
-            2 -> Enemy(2, sx, sy, 95f * hpMul, 95f * hpMul, 92f * spMul, dp(30f), 22f, 3, 60)
-            3 -> Enemy(3, sx, sy, 30f * hpMul, 30f * hpMul, 150f * spMul, dp(20f), 12f, 2, 30)
-            4 -> Enemy(4, sx, sy, 9f * hpMul, 9f * hpMul, 235f * spMul, dp(10f), 6f, 1, 8)
-            6 -> Enemy(6, sx, sy, 20f * hpMul, 20f * hpMul, 190f * spMul, dp(15f), 10f, 2, 35)
-            7 -> Enemy(7, sx, sy, 34f * hpMul, 34f * hpMul, 152f * spMul, dp(16f), 16f, 2, 45)
-            8 -> Enemy(8, sx, sy, 24f * hpMul, 24f * hpMul, 205f * spMul, dp(15f), 10f, 3, 50)
-            9 -> Enemy(9, sx, sy, 30f * hpMul, 30f * hpMul, 142f * spMul, dp(19f), 12f, 2, 35)
-            10 -> Enemy(10, sx, sy, 125f * hpMul, 125f * hpMul, 82f * spMul, dp(31f), 24f, 4, 80)
+            1 -> Enemy(1, sx, sy, 14f * hpMul, 14f * hpMul, 240f * spMul, dp(13f), 6f, 1, 15)
+            2 -> Enemy(2, sx, sy, 95f * hpMul, 95f * hpMul, 92f * spMul, dp(30f), 17f, 3, 60)
+            3 -> Enemy(3, sx, sy, 30f * hpMul, 30f * hpMul, 150f * spMul, dp(20f), 9f, 2, 30)
+            4 -> Enemy(4, sx, sy, 9f * hpMul, 9f * hpMul, 235f * spMul, dp(10f), 5f, 1, 8)
+            6 -> Enemy(6, sx, sy, 20f * hpMul, 20f * hpMul, 190f * spMul, dp(15f), 8f, 2, 35)
+            7 -> Enemy(7, sx, sy, 34f * hpMul, 34f * hpMul, 152f * spMul, dp(16f), 12f, 2, 45)
+            8 -> Enemy(8, sx, sy, 24f * hpMul, 24f * hpMul, 205f * spMul, dp(15f), 8f, 3, 50)
+            9 -> Enemy(9, sx, sy, 30f * hpMul, 30f * hpMul, 142f * spMul, dp(19f), 9f, 2, 35)
+            10 -> Enemy(10, sx, sy, 125f * hpMul, 125f * hpMul, 82f * spMul, dp(31f), 19f, 4, 80)
             11 -> Enemy(11, sx, sy, 42f * hpMul, 42f * hpMul, 305f * spMul, dp(14f), 0f, 0, 250)
-            else -> Enemy(0, sx, sy, 26f * hpMul, 26f * hpMul, 168f * spMul, dp(17f), 12f, 1, 20)
+            else -> Enemy(0, sx, sy, 26f * hpMul, 26f * hpMul, 158f * spMul, dp(17f), 9f, 1, 20)
         }
         // ⭐ ELITE: rare, huge, gold-ringed, drops triple loot
         if ((mutator == 3 || (wave >= 3 && pickRng().nextFloat() < 0.09f)) && type != 11) {
@@ -536,9 +555,9 @@ class GameView(context: Context) : View(context) {
     }
 
     private fun spawnBoss() {
-        val hpMul = (1f + (wave - 1) * 0.24f) * (if (save.hardMode) 1.3f else 1f) // #149 hard mode
+        val hpMul = (1f + (wave - 1) * 0.24f) * (if (save.hardMode) 1.15f else 1f) // #149 hard mode
         val bossHp = 650f * hpMul * (1f + wave / 10f)
-        val e = Enemy(5, w / 2, -80f, bossHp, bossHp, 105f, dp(46f), 30f, 25, 1000)
+        val e = Enemy(5, w / 2, -80f, bossHp, bossHp, 105f, dp(46f), 24f, 25, 1000)
         enemies.add(e)
         e.spawnT = 0.95f // #199 rise-in (scale formula clamps the first stretch)
         decals.add(Decal(w / 2, dp(120f), dp(56f), 8f)); decals.add(Decal(w / 2, dp(120f), dp(30f), 8f))
@@ -842,7 +861,7 @@ class GameView(context: Context) : View(context) {
                 val pr2 = Proj(px + cos(a) * dp(20f), py + sin(a) * dp(20f),
                     cos(a) * wp.projSpeed, sin(a) * wp.projSpeed,
                     wp.dmg * dmgMul * (if (focusReady) 3f else 1f), wp.pierce, true,
-                    if (focusReady) dp(9f) else dp(6f), if (focusReady) Color.rgb(254, 240, 138) else pcol)
+                    if (focusReady) dp(11f) else dp(8.5f), if (focusReady) Color.rgb(254, 240, 138) else pcol)
                 if (save.selectedWeapon == 5) pr2.aoe = dp(55f) // #130 Meteor Staff
                 projs.add(pr2)
             }
@@ -1312,7 +1331,7 @@ class GameView(context: Context) : View(context) {
         waveHurt = true // #786 real HP loss ends the flawless run
         val ne = enemies.minByOrNull { hyp(it.x - px, it.y - py) } // #163 knockback away from nearest foe
         if (ne != null) { val kd = max(1f, hyp(px - ne.x, py - ne.y)); kbx = (px - ne.x) / kd * 300f; kby = (py - ne.y) / kd * 300f; lastHurtAngle = atan2(ne.y - py, ne.x - px); lastHurtT = 0.9f } // #244 damage direction
-        invulnT = 0.45f
+        invulnT = 0.7f // v2.7.3: longer post-hit grace
         hurtFlash = 0.85f
         shake = max(shake, 7f)
         audio.sfx("hurt")
@@ -1550,6 +1569,10 @@ class GameView(context: Context) : View(context) {
 
     // ---------- input ----------
     override fun onTouchEvent(e: MotionEvent): Boolean {
+        return try { touchFrame(e) } catch (ex: Exception) { logFault("touch", ex); true } // v2.7.2: fault net
+    }
+
+    private fun touchFrame(e: MotionEvent): Boolean {
         if (e.pointerCount > 2) return true // #382 pinch / extra fingers are ignored — no accidental gestures
         val idx = e.actionIndex
         val pid = if (idx < e.pointerCount) e.getPointerId(idx) else -1
@@ -2076,6 +2099,10 @@ class GameView(context: Context) : View(context) {
 
     override fun onDraw(c: Canvas) {
         super.onDraw(c)
+        try { drawFrame(c) } catch (e: Exception) { logFault("draw", e) } // v2.7.2: a draw fault skips one frame
+    }
+
+    private fun drawFrame(c: Canvas) {
         hits.clear()
         val cd = "GEMSTORM — ${state.name.lowercase()} screen"
         if (contentDescription != cd) contentDescription = cd
@@ -2959,7 +2986,7 @@ drawHeart(c, hd.x, hd.y, r, Color.rgb(239, 68, 68)) // v2.6: one true heart, no 
                     p.style = Paint.Style.FILL
                     for (k in 0 until 2) { val fa = time * 0.9f + k * 2.4f; poly(c, bpx + cos(fa) * dp(20f), bpy + sin(fa * 1.3f) * dp(16f), dp(2.2f), 4, fa, Color.rgb(219, 234, 254)) } // #553 snow motes drift around Cryo
                 }
-                5 -> poly(c, bpx, bpy, dp(3.4f), 4, time * 1.8f, Color.WHITE) // #558 the 💎N🎱 gem throws a rotating glint
+                5 -> poly(c, bpx, bpy, dp(3.2f), 4, time * 0.4f, Color.rgb(34, 197, 94)) // #558 Turbo gem accent — matte green, slow turn (v2.7.1: white sparkle glint removed)
             }
             // #409 hurt flash washes the body right after a hit
             if (hurtFlash > 0.45f) {
@@ -3893,7 +3920,7 @@ drawHeart(c, hd.x, hd.y, r, Color.rgb(239, 68, 68)) // v2.6: one true heart, no 
         p.color = Color.rgb(100, 116, 139); p.alpha = 60; c.drawRect(dp(24f), h - dp(33f), w - dp(24f), h - dp(32f), p); p.alpha = 255 // #799 a divider hairline rules the footer
         poly(c, cx, h - dp(32.5f), dp(3.4f), 4, time * 3f, Color.rgb(52, 211, 153))
         poly(c, cx, h - dp(31f), dp(3.2f) + dp(0.9f) * sin(time * 3f), 4, time * 1.5f, Color.rgb(34, 211, 238)) // #822 a small gem pulses above the menu footer
-        txtFitC(c, "💎 ${save.gemBank}  •  🌊 Best wave ${save.bestWave}  •  by QamoTech 💎N🎱  •  v2.7 — 848-upgrade edition", cx, h - dp(18f), dp(11.5f), Color.rgb(100, 116, 139), w - dp(16f), false) // #337 footer chips
+        txtFitC(c, "💎 ${save.gemBank}  •  🌊 Best wave ${save.bestWave}  •  by QamoTech 💎N🎱  •  v2.7.3 — 848-upgrade edition", cx, h - dp(18f), dp(11.5f), Color.rgb(100, 116, 139), w - dp(16f), false) // #337 footer chips
         (0 until 2).forEach { k -> poly(c, (if (k == 0) dp(14f) else w - dp(14f)), h - dp(18f), dp(3.2f), 4, time * 3f + k * 1.9f, Color.rgb(52, 211, 153)) } // #773 gems pin the menu footer corners
     }
 
@@ -4186,6 +4213,11 @@ drawHeart(c, hd.x, hd.y, r, Color.rgb(239, 68, 68)) // v2.6: one true heart, no 
         txtL(c, "All music & SFX composed in-engine — synthesized, never sampled.", dp(28f), y, dp(13.5f), Color.rgb(148, 163, 184)); y += dp(24f)
         txtL(c, "Unlocks are earned with banked gems — no ads, no IAP, ever.", dp(28f), y, dp(13.5f), Color.rgb(148, 163, 184)); y += dp(48f)
         txt(c, "Thanks for playing the storm. 💎", w / 2, y, dp(14f), Color.rgb(250, 204, 21), true)
+        y += dp(46f)
+        txtL(c, "🛡 Crash-guard log — last faults caught:", dp(28f), y, dp(12f), Color.rgb(148, 163, 184), true); y += dp(21f)
+        val fl = save.faultLog
+        if (fl.isEmpty()) { txtL(c, "None — clean skies.", dp(28f), y, dp(11.5f), Color.rgb(100, 116, 139)); y += dp(18f) }
+        else for (entry in fl.split(" | ").takeLast(4)) { txtL(c, entry.take(64), dp(28f), y, dp(11.5f), Color.rgb(248, 113, 113)); y += dp(18f) }
     }
 
     private fun drawShop(c: Canvas) {

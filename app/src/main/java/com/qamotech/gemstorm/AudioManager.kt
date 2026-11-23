@@ -31,7 +31,7 @@ class AudioManager(private val context: Context, private val save: SaveData) {
         when (change) {
             android.media.AudioManager.AUDIOFOCUS_LOSS,
             android.media.AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
-                if (musicPlayer?.isPlaying == true) { musicPlayer?.pause(); focusPaused = true }
+                try { if (musicPlayer?.isPlaying == true) { musicPlayer?.pause(); focusPaused = true } } catch (_: Exception) { }
             }
             android.media.AudioManager.AUDIOFOCUS_GAIN -> {
                 if (focusPaused && currentTrack != 0 && save.musicOn) {
@@ -119,7 +119,11 @@ class AudioManager(private val context: Context, private val save: SaveData) {
     }
 
     /** track: an R.raw music loop; 0 stops music. Honors the music toggle (#290) and mute-all (#292). */
-    fun playMusic(track: Int) {
+    fun playMusic(track: Int) { // v2.7.2: the media state machine can never crash the game
+        try { playMusicInner(track) } catch (_: Exception) { }
+    }
+
+    private fun playMusicInner(track: Int) {
         if (track != 0 && !save.musicOn) { stopMusic(); return }
         if (track == currentTrack && musicPlayer != null) return
         stopMusic()
@@ -137,7 +141,7 @@ class AudioManager(private val context: Context, private val save: SaveData) {
     fun stopMusic() {
         musicPlayer?.let {
             try { if (it.isPlaying) it.stop() } catch (_: IllegalStateException) { }
-            it.release()
+            try { it.release() } catch (_: Exception) { }
         }
         musicPlayer = null
         currentTrack = 0
@@ -145,8 +149,10 @@ class AudioManager(private val context: Context, private val save: SaveData) {
     }
 
     fun applyMusicVolume() {
-        if (save.muteAll) musicPlayer?.setVolume(0f, 0f)
-        else musicPlayer?.setVolume(save.musicVol, save.musicVol)
+        try {
+            if (save.muteAll) musicPlayer?.setVolume(0f, 0f)
+            else musicPlayer?.setVolume(save.musicVol, save.musicVol)
+        } catch (_: Exception) { }
     }
 
     /** #346 crossfade from the current track into a new one (menu -> battle on run start). */
@@ -174,7 +180,7 @@ class AudioManager(private val context: Context, private val save: SaveData) {
 
     /** #292 mute-all: silences the live music player immediately; SFX gate lives in sfx(). */
     fun setMuted(m: Boolean) {
-        if (m) musicPlayer?.setVolume(0f, 0f) else applyMusicVolume()
+        try { if (m) musicPlayer?.setVolume(0f, 0f) else applyMusicVolume() } catch (_: Exception) { }
     }
 
     /** #283 duck the music to 70% briefly (boss roar). */
